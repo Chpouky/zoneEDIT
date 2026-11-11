@@ -1,28 +1,18 @@
 # zoneEDIT
 
-*// v0.9 //*
-
-> **zoneEDIT** is a **desktop** app created with the sole purpose of making
-> **modding** more **accessible**.
-
-A desktop app to mod **S.T.A.L.K.E.R. 2** without touching the game files by
-hand: change what spawns in the Zone — and how much of it.
+**zoneEDIT** is a **desktop** app created with the sole purpose of making
+**modding** more **accessible**.
 
 ![What is zoneEDIT](imgs/01-what-is-zoneedit.png)
 
 ## Features
 
-- **Edit** `.cfg` values and export, while **following** the documented
-  **ZoneKit** `{bpatch}` rules
+- **Edit** `.cfg` values and export, while **following** the documented **ZoneKit** `{bpatch}` rules
 - Create **presets** that you can go back to
 - **Review** your changes with the **Diff Preview**
 
-![Edit any value](imgs/03-edit-any-value.png)
-
 Every change is visible in the **Diff Preview**, grouped by item, with the
-original value next to the new one — before anything is written.
-
-![Preview your changes](imgs/02-preview-your-changes.png)
+original value next to the new one before anything is written.
 
 ## Planned features
 
@@ -33,14 +23,15 @@ original value next to the new one — before anything is written.
 ## Workflow
 
 1. **Download** the **Lesser ZoneKit** on the **Epic Games Store**
-2. Run the ZoneKit **`CreatePlainMod.bat`** followed by your **mod name**
+2. Run the ZoneKit `CreatePlainMod.bat` followed by your **mod name**
 3. **Launch** the **zoneEDIT** release you downloaded
 4. **Select** your **STALKER2ZoneKit** folder
 5. **Make** your value **changes**
 6. **Export** to your newly created mod folder located in
    `STALKER2ZoneKit/Stalker2/Mods/`
 7. Run the ZoneKit **`PakPlainMod.bat`** followed by your **mod name**
-8. **Install** your mod like usual in `~mods`
+8. **Grab** your mod from the `STALKER2ZoneKit/Stalker2/SavedMods/Staged/` folder
+9. **Install** your mod like usual in `~mods`
 
 ## Feature requests
 
