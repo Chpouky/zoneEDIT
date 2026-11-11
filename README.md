@@ -1,9 +1,10 @@
 # zoneEDIT
 
-**zoneEDIT** is a **desktop** app created with the sole purpose of making
-**modding** more **accessible**.
 
 ![What is zoneEDIT](imgs/01-what-is-zoneedit.png)
+
+**zoneEDIT** is a **desktop** app created with the sole purpose of making
+**modding** more **accessible**.
 
 ## Features
 
