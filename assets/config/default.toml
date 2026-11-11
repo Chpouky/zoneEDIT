@@ -1,0 +1,690 @@
+# zoneEDIT — configuration par défaut (embarquée dans l'exécutable).
+#
+# Surcharge : déposer un fichier `zoneedit.toml` à la racine du mod (dossier
+# qui contient `GameData/`). Il est fusionné par-dessus celui-ci : les tables
+# sont fusionnées clé par clé, les tableaux (listes, `[[...]]`) sont
+# REMPLACÉS en entier.
+
+[project]
+# Folders relative to the mod root.
+presets_dir = "presets"
+
+# ---------------------------------------------------------------------------
+# Fichiers chargés. Le premier sert de marqueur pour détecter la racine.
+# `role` est l'identifiant utilisé par les règles de classification.
+# ---------------------------------------------------------------------------
+[[files]]
+path = "GameData/ItemGeneratorPrototypes.cfg"
+name = "ItemGeneratorPrototypes"
+role = "item_generators"
+
+[[files]]
+path = "GameData/ItemGeneratorPrototypes/DynamicItemGenerator.cfg"
+name = "DynamicItemGenerator"
+role = "dynamic_npc"
+
+[[files]]
+path = "GameData/ItemGeneratorPrototypes/QuestItemGeneratorPrototypes.cfg"
+name = "QuestItemGenerator"
+role = "quest"
+
+[[files]]
+path = "GameData/StashPrototypes.cfg"
+name = "StashPrototypes"
+role = "stashes"
+
+[[files]]
+path = "GameData/AnomalyPrototypes.cfg"
+name = "AnomalyPrototypes"
+role = "anomalies"
+
+# World artifact spawners: one sub-block per rank (Newbie / …).
+[[files]]
+path = "GameData/ArtifactSpawnerPrototypes.cfg"
+name = "ArtifactSpawnerPrototypes"
+role = "artifact_spawner"
+
+# ---------------------------------------------------------------------------
+# Lecture des structures (noms de clés du format cfg du jeu).
+# ---------------------------------------------------------------------------
+[parser]
+item_key = "ItemPrototypeSID"            # opens an "item" entry
+delegation_key = "ItemGeneratorPrototypeSID"  # opens a "delegation" entry
+empty_value = "empty"                    # value that opens nothing
+block_sid_key = "SID"                    # renames a level-1 `[N]` block
+rank_keys = ["Rank", "PlayerRank"]
+caliber_key = "PriorityCaliber"
+none_value = "None"                      # "absent" caliber
+itemset_key = "ItemSetCount"             # marks a consumables set
+block_entry_roles = ["anomalies"]        # roles where the block IS the entry
+# Roles where a scope named after a rank (Newbie / …) opens an entry for
+# the whole block, scoped to that rank.
+rank_scope_roles = ["artifact_spawner"]
+# Scope listing the items a spawner spawns: the first SID is the row's icon.
+icon_list_scope = "ListOfArtifacts"
+
+# cfg key aliases: alias -> canonical key.
+# - `weight` (lowercase) is used by some generators (e.g.
+#   AttachNewbieGenerator) where the key is `Weight`;
+# - `AmmoMaxcount` (lowercase `c`) is the same misspelling family, used by a
+#   few NPC loadouts where the key is `AmmoMaxCount`;
+# - `Count` is the per-rank spawn count in ArtifactSpawnerPrototypes.cfg
+#   (kind `ArtifactCount`, to not clash with MinCount/MaxCount).
+# The exported patch keeps the original key as written in the file.
+[parser.aliases]
+weight = "Weight"
+AmmoMaxcount = "AmmoMaxCount"
+Count = "ArtifactCount"
+Common = "RarityChanceCommon"
+Uncommon = "RarityChanceUncommon"
+Rare = "RarityChanceRare"
+Epic = "RarityChanceEpic"
+
+# Scope -> section label (context of the NPC weapon entries).
+[parser.sections]
+PrimaryWeaponParams = "Primary"
+SecondaryWeaponParams = "Secondary"
+PistolWeaponParams = "Pistol"
+MeleeWeaponParams = "Melee"
+
+# Rangs de difficulté (valeurs de l'enum ERank, sans préfixe), dans l'ordre.
+[ranks]
+values = ["Newbie", "Experienced", "Veteran", "Master"]
+
+# ---------------------------------------------------------------------------
+# Champs éditables.
+#   type    : "int" | "float"
+#   min/max : bornes de validation (optionnelles)
+#   display : "raw" | "percent" (saisie/affichage en %, stockage en [0, 1]f)
+#   scope   : "entry" (porté par l'item) | "group" (partagé par le calibre / set)
+# ---------------------------------------------------------------------------
+[[fields]]
+kind = "Weight"
+short = "W"
+long = "Weight"
+type = "float"
+min = 0
+
+[[fields]]
+kind = "Chance"
+short = "C"
+long = "Chance"
+type = "float"   # poids relatif (données : 10, 100.0…) : pas borné à 1
+min = 0
+
+[[fields]]
+kind = "MinCount"
+short = "Min"
+long = "Min Count"
+type = "int"
+min = 0
+
+[[fields]]
+kind = "MaxCount"
+short = "Max"
+long = "Max Count"
+type = "int"
+min = 0
+
+[[fields]]
+kind = "AmmoMinCount"
+short = "Amin"
+long = "Ammo Min"
+type = "int"
+min = 0
+
+[[fields]]
+kind = "AmmoMaxCount"
+short = "Amax"
+long = "Ammo Max"
+type = "int"
+min = 0
+
+# Durability range of a spawned weapon (0..1 fraction of the max durability).
+[[fields]]
+kind = "MinDurability"
+short = "Dmin"
+long = "Min Dur"
+type = "float"
+min = 0
+max = 1
+
+[[fields]]
+kind = "MaxDurability"
+short = "Dmax"
+long = "Max Dur"
+type = "float"
+min = 0
+max = 1
+
+[[fields]]
+kind = "MainWeaponAmmoCount"
+short = "MainAmmo"
+long = "Main Ammo"
+type = "int"
+min = 0
+scope = "group"
+
+# Header labels (`long`) are painted centered on the ~70 px column grid:
+# keep them short (the modal shows the full `short` name). The " %" suffix
+# is appended automatically for percent fields — headers read "MIN %" /
+# "MAX %" next to "Min Count" / "Max Count" on the stash pages.
+[[fields]]
+kind = "MinSpawnChance"
+short = "Min spawn chance"
+long = "Min"
+type = "float"
+min = 0
+max = 1
+display = "percent"
+scope = "group"
+
+[[fields]]
+kind = "MaxSpawnChance"
+short = "Max spawn chance"
+long = "Max"
+type = "float"
+min = 0
+max = 1
+display = "percent"
+scope = "group"
+
+# ---- Anomalies (flat fields of `AnomalyPrototypes.cfg`) ----
+# `long` = short column header (fits the column); `short` = fuller label
+# used in the diff-preview modal. No units are annotated: the game's .cfg
+# does not document the unit for these fields (the field names carry no
+# unit suffix, unlike e.g. `AIGlobals.cfg`'s `...Seconds` / `...PerSecond`).
+# ---------------------------------------------------------------------------
+# World artifact spawners (ArtifactSpawnerPrototypes.cfg, per rank scope).
+# ---------------------------------------------------------------------------
+[[fields]]
+kind = "ArtifactCount"
+short = "Count"
+long = "Count"
+type = "int"
+min = 0
+max = 255
+
+# Header labels (`long`) are painted centered on the ~70 px column grid:
+# keep them short (the modal shows the full `short` name).
+[[fields]]
+kind = "MinCooldown"
+short = "Min cooldown"
+long = "Min cool"
+type = "float"
+min = 0
+max = 86400
+
+[[fields]]
+kind = "MaxCooldown"
+short = "Max cooldown"
+long = "Max cool"
+type = "float"
+min = 0
+max = 86400
+
+[[fields]]
+kind = "SpawnChanceBase"
+short = "Spawn chance (base)"
+long = "Base"
+type = "float"
+min = 0
+max = 100
+
+[[fields]]
+kind = "SpawnChanceBonus"
+short = "Spawn chance (bonus)"
+long = "Bonus"
+type = "float"
+min = 0
+max = 100
+
+[[fields]]
+kind = "RarityChanceCommon"
+short = "Rarity chance (common)"
+long = "Common"
+type = "float"
+min = 0
+max = 100
+
+[[fields]]
+kind = "RarityChanceUncommon"
+short = "Rarity chance (uncommon)"
+long = "Uncommon"
+type = "float"
+min = 0
+max = 100
+
+[[fields]]
+kind = "RarityChanceRare"
+short = "Rarity chance (rare)"
+long = "Rare"
+type = "float"
+min = 0
+max = 100
+
+[[fields]]
+kind = "RarityChanceEpic"
+short = "Rarity chance (epic)"
+long = "Epic"
+type = "float"
+min = 0
+max = 100
+
+[[fields]]
+kind = "Radius"
+short = "Radius"
+long = "Radius"
+type = "float"
+min = 0
+
+[[fields]]
+kind = "Cooldown"
+short = "Cooldown"
+long = "Cooldown"
+type = "float"
+min = 0
+
+[[fields]]
+kind = "Duration"
+short = "Duration"
+long = "Duration"
+type = "float"
+min = 0
+
+[[fields]]
+kind = "ActivationDelay"
+short = "Activation Delay"
+long = "Delay"
+type = "float"
+min = 0
+
+[[fields]]
+kind = "ActivationSpeedThreshold"
+short = "Activation Speed Threshold"
+long = "Speed"
+type = "float"
+min = 0
+
+[[fields]]
+kind = "DefaultHeightOffset"
+short = "Default Height Offset"
+long = "Height"
+type = "float"
+min = 0
+
+[[fields]]
+kind = "CollisionHeight"
+short = "Collision Height"
+long = "Collision"
+type = "float"
+min = 0
+
+# --- Variant-specific fields (the "own" values of the anomaly sub-variants) ---
+# These are the fields that only a few child prototypes override. They are
+# exposed so the indented sub-rows can be edited in place.
+[[fields]]
+kind = "MovementLocationPriorityRadius"
+short = "Priority Radius"
+# `long` is the column header: it must fit a 70 px cell (11 px font).
+long = "Priority"
+type = "float"
+min = 0
+
+[[fields]]
+kind = "MovementSpeed"
+short = "Move Speed"
+long = "Move Speed"
+type = "float"
+min = 0
+
+[[fields]]
+kind = "FakeArtifactSpawnAmountMin"
+short = "Fake Art. Min"
+# `long` is the column header: it must fit a 70 px cell (11 px font).
+# "Fake Art. Min/Max" would be truncated to two identical strings.
+long = "Fake Min"
+type = "int"
+min = 0
+
+[[fields]]
+kind = "FakeArtifactSpawnAmountMax"
+short = "Fake Art. Max"
+long = "Fake Max"
+type = "int"
+min = 0
+
+# Controlled pairs (min ≤ max) when the user edits one of the two.
+[[pairs]]
+min = "MinCount"
+max = "MaxCount"
+
+[[pairs]]
+min = "AmmoMinCount"
+max = "AmmoMaxCount"
+
+[[pairs]]
+min = "MinDurability"
+max = "MaxDurability"
+
+[[pairs]]
+min = "MinCooldown"
+max = "MaxCooldown"
+
+[[pairs]]
+min = "FakeArtifactSpawnAmountMin"
+max = "FakeArtifactSpawnAmountMax"
+
+[[batch]]
+label = "Set Chance…"
+fields = ["Chance"]
+inputs = ["Chance"]
+
+[[batch]]
+label = "Set Min/Max…"
+fields = ["MinCount", "MaxCount"]
+inputs = ["Min", "Max"]
+
+[[batch]]
+label = "Set Min/Max Spawn %…"
+fields = ["MinSpawnChance", "MaxSpawnChance"]
+inputs = ["Min", "Max"]
+
+# ---------------------------------------------------------------------------
+# Catégories (« spawn sources ») : ordre = ordre de la barre latérale.
+# `group` = titre de section dans la barre latérale.
+# ---------------------------------------------------------------------------
+[[categories]]
+id = "MedCrate"
+label = "Medical crates (DestructibleStash)"
+short = "Medical crates"
+group = "Medical"
+columns = ["Weight", "Chance", "MinCount", "MaxCount"]
+
+[[categories]]
+id = "MedStash"
+label = "Medical stashes (StashMedicine)"
+short = "Medical stashes"
+group = "Medical"
+columns = ["Weight", "Chance", "MinCount", "MaxCount", "MinSpawnChance", "MaxSpawnChance"]
+
+[[categories]]
+id = "MedDirect"
+label = "Direct player / NPC spawn"
+short = "Direct spawn"
+group = "Medical"
+columns = ["Weight", "Chance", "MinCount", "MaxCount"]
+
+[[categories]]
+id = "AmmoGenerator"
+label = "Ammo generators"
+short = "Ammo generators"
+group = "Ammo"
+columns = ["Chance", "MinCount", "MaxCount"]
+
+[[categories]]
+id = "AmmoLoot"
+label = "Ammo loot (player / NPC)"
+short = "Ammo loot"
+group = "Ammo"
+columns = ["Weight", "Chance", "MinCount", "MaxCount"]
+
+[[categories]]
+id = "AmmoSmart"
+label = "Smart ammo stashes"
+short = "Smart stashes"
+group = "Ammo"
+columns = ["MinCount", "MaxCount", "Weight", "Chance"]
+
+[[categories]]
+id = "AmmoWeapon"
+label = "Weapon ammo (AmmoMin/Max)"
+short = "Weapons Loaded Ammo"
+group = "Ammo"
+columns = ["Weight", "Chance", "MinCount", "MaxCount", "AmmoMinCount", "AmmoMaxCount", "MinDurability", "MaxDurability"]
+
+[[categories]]
+id = "Food"
+label = "Food & drink (stashes & generators)"
+short = "Food & drink"
+group = "Consumables"
+columns = ["Weight", "Chance", "MinCount", "MaxCount", "MinSpawnChance", "MaxSpawnChance"]
+
+[[categories]]
+id = "Grenade"
+label = "Grenades (stashes & generators)"
+short = "Grenades"
+group = "Combat"
+columns = ["Weight", "Chance", "MinCount", "MaxCount", "MinSpawnChance", "MaxSpawnChance"]
+
+[[categories]]
+id = "Armor"
+label = "Armor, helmets & NVG"
+short = "Armor & NVG"
+group = "Equipment"
+columns = ["Weight", "Chance", "MinCount", "MaxCount"]
+
+[[categories]]
+id = "Attach"
+label = "Attachments & detectors"
+short = "Attachments"
+group = "Equipment"
+columns = ["Weight", "Chance", "MinCount", "MaxCount"]
+
+[[categories]]
+id = "Detectors"
+label = "Detectors"
+short = "Detectors"
+group = "Equipment"
+columns = ["Weight", "Chance", "MinCount", "MaxCount"]
+
+[[categories]]
+id = "Artifact"
+label = "Artifacts"
+short = "Artifacts"
+group = "Loot"
+columns = ["Weight", "Chance", "MinCount", "MaxCount"]
+
+[[categories]]
+id = "Loot"
+label = "Mutant & animal loot"
+short = "Mutant loot"
+group = "Loot"
+columns = ["Weight", "Chance", "MinCount", "MaxCount"]
+
+[[categories]]
+id = "NpcLoadout"
+label = "NPC loadouts (world factions)"
+short = "NPC loadouts"
+group = "NPCs"
+columns = ["Weight", "Chance", "MinCount", "MaxCount", "AmmoMinCount", "AmmoMaxCount", "MinDurability", "MaxDurability"]
+
+[[categories]]
+id = "Quest"
+label = "Quest & unique items"
+short = "Quest items"
+group = "Quest"
+columns = ["Weight", "Chance", "MinCount", "MaxCount"]
+
+# ---------------------------------------------------------------------------
+# "STATS" section: anomaly prototypes (one block = one anomaly).
+# ---------------------------------------------------------------------------
+[[categories]]
+id = "Anomalies"
+label = "Anomaly prototypes (behavior)"
+short = "Anomalies"
+section = "STATS"
+group = "Anomalies"
+columns = [
+  "Radius",
+  "Cooldown",
+  "Duration",
+  "ActivationDelay",
+  "ActivationSpeedThreshold",
+  "DefaultHeightOffset",
+  "CollisionHeight",
+  "MovementLocationPriorityRadius",
+  "MovementSpeed",
+  "FakeArtifactSpawnAmountMin",
+  "FakeArtifactSpawnAmountMax",
+]
+
+# ---------------------------------------------------------------------------
+# "ARTIFACTS" section: world artifact spawners (one entry per rank scope).
+# ---------------------------------------------------------------------------
+[[categories]]
+id = "ArtifactSpawner"
+label = "World artifact spawners (per rank)"
+short = "Artifact spawners"
+section = "ARTIFACTS"
+group = "Artifacts"
+columns = [
+  "ArtifactCount",
+  "Radius",
+  "MinCooldown",
+  "MaxCooldown",
+  "SpawnChanceBase",
+  "SpawnChanceBonus",
+  "RarityChanceCommon",
+  "RarityChanceUncommon",
+  "RarityChanceRare",
+  "RarityChanceEpic",
+]
+
+# ---------------------------------------------------------------------------
+# Règles de classification, évaluées DANS L'ORDRE : la première qui
+# correspond donne la catégorie (aucune → entrée hors périmètre).
+#
+# Conditions (toutes doivent être vraies) :
+#   delegations        : "exclude" (défaut) | "include" | "only"
+#   file_roles         : rôle du fichier parmi la liste
+#   exclude_file_roles : rôle du fichier hors de la liste
+#   block / item       : motif { exact, prefix, suffix, contains } — vrai si
+#                        l'une des listes correspond
+#   has_fields         : l'entrée porte au moins un de ces champs
+# ---------------------------------------------------------------------------
+
+# Anomalies: the whole `AnomalyPrototypes.cfg` file (one block = one entry).
+[[rules]]
+category = "Anomalies"
+file_roles = ["anomalies"]
+
+# World artifact spawners: one entry per rank scope.
+[[rules]]
+category = "ArtifactSpawner"
+file_roles = ["artifact_spawner"]
+
+# Charge des NPCs du monde : groupée par bloc de faction, quel que soit l'item.
+[[rules]]
+category = "NpcLoadout"
+file_roles = ["dynamic_npc"]
+block = { prefix = ["GeneralNPC", "GuardNPC", "GeneralZombie", "Duga_", "Granit_"] }
+
+# Caisses médicales cassables (délégations comprises).
+[[rules]]
+category = "MedCrate"
+delegations = "include"
+block = { exact = [
+  "DestructibleStash_Medkit_Newbie",
+  "DestructibleStash_Medkit_Experienced",
+  "DestructibleStash_Medkit_Veteran",
+  "DestructibleStash_Medkit_Master",
+  "DestructibleStash_Med",
+  "DestructibleStash_Med_Experienced",
+  "DestructibleStash_Med_Veteran",
+  "DestructibleStash_Med_Master",
+  "DestructibleStashProlog_Med",
+] }
+
+[[rules]]
+category = "MedStash"
+block = { prefix = ["StashMedicine"] }
+
+[[rules]]
+category = "AmmoGenerator"
+block = { exact = ["AllAmmosGenerator", "AllAmmosNPCGenerator", "CommonCacheAmmoGenerator"] }
+
+[[rules]]
+category = "AmmoSmart"
+file_roles = ["stashes"]
+block = { exact = [
+  "Stash_AmmoAll_Cheap",
+  "Stash_AmmoNATO_Smart",
+  "Stash_AmmoSNG_Smart",
+  "Stash_AmmoNATO_Smart_MainLoot",
+  "Stash_AmmoSNG_Smart_MainLoot",
+  "Stash_Ammo_Smart_Cheap",
+  "Stash_Ammo_Smart_CommonRare",
+  "NPC_Ammo_Smart",
+] }
+
+# Spawn direct (joueur / NPC principal). Les deux orthographes AntiRad /
+# Antirad existent dans les données.
+[[rules]]
+category = "MedDirect"
+block = { exact = ["PlayerItemGenerator", "MainNPCItemGenerator", "GameStartPlayerItemGenerator"] }
+item = { exact = ["Medkit", "ArmyMedkit", "EcoMedkit", "Bandage", "AntiRad", "Antirad"] }
+
+[[rules]]
+category = "AmmoLoot"
+block = { exact = ["PlayerItemGenerator", "MainNPCItemGenerator", "GameStartPlayerItemGenerator"] }
+item = { exact = [
+  "A918D", "A918A", "A045D", "A045A", "A045E", "A919D", "A919A",
+  "A545D", "A545A", "A545E", "A939D", "A939A", "A939S", "A939E",
+  "A556D", "A556A", "A556S", "A556E", "A762SniperD", "A762SniperA",
+  "A762SniperS", "A012D", "A012A", "A012E", "A762NATOD", "A762NATOA", "A762NATOS",
+] }
+
+# Armes : entrées portant AmmoMinCount / AmmoMaxCount (hors stashes).
+[[rules]]
+category = "AmmoWeapon"
+exclude_file_roles = ["stashes"]
+has_fields = ["AmmoMinCount", "AmmoMaxCount"]
+
+# Familles d'items par nom. L'ordre compte : les motifs de quête sont les
+# plus larges (une armure de quête porte aussi le suffixe _Armor).
+[[rules]]
+category = "Quest"
+item = { prefix = ["Blueprint_"], suffix = ["PDA"], contains = ["_Key_", "Note", "Docs"], exact = [
+  "Electrocollar",
+  "QuestArtifactHeartofChornobyl",
+  "E07_MQ01PsySuit",
+  "GuardQuestItem",
+  "DvupalovVodka",
+  "SuppressorDevicePart",
+  "E03_02_OldTechDocs_X18",
+] }
+
+[[rules]]
+category = "Artifact"
+item = { prefix = ["CArtifact", "FArtifact", "GArtifact", "EArtifact", "AArtifact"] }
+
+[[rules]]
+category = "Food"
+item = { exact = ["Bread", "Sausage", "CannedFood", "Vodka", "Beer", "Water", "Milk", "Energetic"] }
+
+[[rules]]
+category = "Grenade"
+item = { exact = ["GrenadeF1", "GrenadeRGD5"] }
+
+[[rules]]
+category = "Loot"
+item = { exact = [
+  "DeerLoot", "BoarLoot", "CatLoot", "ChimeraLoot", "BloodsuckerLoot",
+  "PseudodogLoot", "PseudogiantLoot", "FleshLoot", "ControllerLoot",
+  "PoltergeistLoot", "BurerLoot", "SnorkLoot", "TushkanLoot", "BlinddogLoot",
+] }
+
+[[rules]]
+category = "Armor"
+item = { suffix = ["_Armor", "_Helmet"], prefix = ["NVG_", "Binoculars_"] }
+
+# Détecteurs d'anomalies (Gilka / Veles / Echo / Oko / Bear).
+[[rules]]
+category = "Detectors"
+item = { exact = ["Gilka", "Veles", "Echo", "Oko", "Bear"] }
+
+[[rules]]
+category = "Attach"
+item = { prefix = ["RU_", "EN_"], exact = ["Hercules", "DetectorGilka"] }
+
