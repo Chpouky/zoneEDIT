@@ -1,0 +1,66 @@
+name: Windows release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to attach the build to (e.g. v0.9.0)"
+        required: true
+        default: "v0.9.0"
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain
+        run: |
+          rustc --version
+          cargo --version
+
+      - name: Cache cargo home
+        uses: actions/cache@v4
+        with:
+          path: |
+            C:\Users\runneradmin\.cargo\registry
+            C:\Users\runneradmin\.cargo\bin
+          key: cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache build
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: build-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-${{ hashFiles('src/**/*.rs', 'benches/**/*.rs', 'assets/**') }}
+
+      - name: Build
+        run: cargo build --release
+
+      - name: Package
+        run: >
+          Compress-Archive
+          -Path target/release/zoneedit.exe, LICENSE.md
+          -DestinationPath "zoneedit-${{ inputs.tag || github.ref_name }}-x86_64-pc-windows-msvc.zip"
+
+      - name: Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zoneedit-windows
+          path: "*.zip"
+
+      - name: Upload to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $tag = "${{ inputs.tag || github.ref_name }}"
+          gh release view "$tag" > $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create "$tag" --title "zoneEDIT $tag" --notes "Windows x64 build."
+          }
+          gh release upload "$tag" "zoneedit-$tag-x86_64-pc-windows-msvc.zip" --clobber
+          gh release view "$tag"
