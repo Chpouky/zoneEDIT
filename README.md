@@ -34,11 +34,6 @@ original value next to the new one before anything is written.
 8. **Grab** your mod from the `STALKER2ZoneKit/Stalker2/SavedMods/Staged/` folder
 9. **Install** your mod like usual in `~mods`
 
-## Feature requests
-
-I'd **love** to hear about your **ideas**! Don't hesitate to open an
-[issue](https://github.com/Chpouky/zoneEDIT/issues) if you wish to contribute.
-
 ## Bug reports
 
 If you find any **bug**, please **report** it on the
