@@ -200,7 +200,33 @@ shops (currently under NPC Loadouts) move to the new page too.
       - Tests: `fixture_traders` (classification + `exclude_block` +
         delegation), headless render test `traders_rows_render` (dropdown
         row + plain item rows after expand + delegation row + 5 headers),
-        real-gamedata `real_traders_page` (64 blocks, 534 rows, 0 leakage).
+        real-gamedata `real_traders_page`.
+
+- [x] **T2 — Every Trader* block on the TRADERS page**
+      The 64 shop blocks were not the whole story: **97 blocks** in the
+      loaded files carry a trader name — the 64 shops plus the **shared
+      sub-pools** the shops delegate to (`Trader_T1…T4_Guns/Ammo`,
+      `Trader_NatoAmmo/SovietAmmo`, `Trader_Attachments_T2…T4`,
+      `Trader_Cosnsumables`, `TraderSecondary/PrimaryWeapon`,
+      `DynamicTrader`, `AllTrader`, `MainTraderItemGeneratorV1`,
+      `RC_TraderNPC`) and the **wandering-NPC-trader generators**
+      (`SvoraTrader`, `VoentorgTrader`, `SkadovskTrader`, `TraderEugene`,
+      `TraderJunker` → Universal / Other; `ZalesieTrader` → Zalesie,
+      `TerriconTraderGuron` → Terricon, `supack_trader` → Selma,
+      `HimzavodTrader` → Chemical Plant, `TraderSuska` → Suska).
+      Naming rule (zero collateral in the loaded files): a block whose name
+      contains **"Trade" or "trader"** belongs to the TRADERS page. The 10
+      item-spawn rules exclude them (`contains = ["Trade", "trader"]`),
+      the TRADERS location rules grew their prefixes accordingly —
+      config-only.
+      - The TRADERS page is **uncolored**: the delegation tint (used to
+        group a stock seen in two places, e.g. Medical Crates) is skipped
+        for rows of the TRADERS section — a shop → shared-pool delegation
+        is a plain data reference. Item Spawns tints are untouched.
+      - Tests: `real_traders_page` (97 blocks, 847 rows, 0 leakage in both
+        directions), `fixture_traders` gained a shared-pool block
+        (`Trader_Food_Fixture_ItemGenerator` — excluded from Food,
+        classified Universal Other).
 
 ## Next up (v2) — ordered by dependency
 

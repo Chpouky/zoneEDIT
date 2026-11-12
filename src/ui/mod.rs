@@ -688,12 +688,22 @@ pub(crate) fn compute_derived(ws: &Workspace, st: &EditorState) -> Derived {
     // next tint from the palette (screen order); its row, its source block
     // and the target block share this tint. The first assignment
     // wins if a block is involved in several delegations.
+    //
+    // The TRADERS page stays uncolored: a shop's delegation to a shared
+    // pool is a plain data reference, not the "same stock seen in two
+    // places" relation the tint is meant to group (Medical Crates).
+    let cfg = ws.config();
+    let in_traders_section = |id: EntryId| {
+        ws.categories_of(id)
+            .iter()
+            .any(|&c| cfg.categories[c.idx()].section == "TRADERS")
+    };
     let mut delegation_tint: HashMap<EntryId, Color32> = HashMap::new();
     let mut block_tint: HashMap<BlockId, Color32> = HashMap::new();
     let mut n_deleg = 0;
     for &id in &visible_idx {
         let e = ws.entry(id);
-        if !e.is_delegation() {
+        if !e.is_delegation() || in_traders_section(id) {
             continue;
         }
         let tint = c::GROUP_TINTS[n_deleg % c::GROUP_TINTS.len()];

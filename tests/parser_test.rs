@@ -424,9 +424,9 @@ fn new_categories() {
     );
 }
 
-/// Real data: every `*_TradeItemGenerator` block is classified in the
-/// TRADERS section (one location category each) and no trade row leaks
-/// into any other section.
+/// Real data: every trader-named block (name contains "Trade"/"trader")
+/// is classified in the TRADERS section and no trader row leaks into any
+/// other section.
 #[test]
 fn real_traders_page() {
     let ws = load_root();
@@ -438,35 +438,37 @@ fn real_traders_page() {
         .collect();
     assert_eq!(trader_cats.len(), 21, "21 TRADERS categories");
 
+    // Every trader-named block ("Trade"/"trader" in the name) lives on the
+    // TRADERS page: all of its rows are classified there, nowhere else.
     let mut blocks: Vec<&str> = Vec::new();
     let mut rows = 0u32;
     for id in ws.entry_ids() {
         let e = ws.entry(id);
         let b = ws.block(e.block).name.as_str();
-        if !b.contains("TradeItemGenerator") {
+        if !b.contains("Trade") && !b.contains("trader") {
             continue;
         }
         rows += 1;
         if !blocks.contains(&b) {
             blocks.push(b);
         }
+        let cats = ws.categories_of(id);
+        assert!(!cats.is_empty(), "trader row unclassified: {b} / {}", e.sid);
         assert!(
-            trader_cats.iter().any(|&c| ws.in_category(id, c)),
-            "trade row classified outside TRADERS: {b} / {}",
+            cats.iter().all(|&c| trader_cats.contains(&c)),
+            "trader row leaked into a non-TRADERS category: {b} / {}",
             e.sid
         );
-        for &c in ws.categories_of(id) {
-            assert_eq!(
-                cfg.categories[c.idx()].section,
-                "TRADERS",
-                "trade row leaked into a non-TRADERS category: {b} / {}",
-                e.sid
-            );
-        }
     }
-    assert_eq!(blocks.len(), 64, "the 64 vanilla trade blocks");
-    // 368 item scopes + 166 delegation scopes in the vanilla file.
-    assert_eq!(rows, 534, "trade rows (items + delegations)");
+    assert_eq!(
+        blocks.len(),
+        97,
+        "all trader-named blocks of the loaded files"
+    );
+    // Item + delegation scopes across the 97 blocks (64 trade blocks:
+    // 368 items + 166 delegations, plus the sub-pool / wandering-trader
+    // generators).
+    assert_eq!(rows, 847, "trader rows (items + delegations)");
 }
 
 // ---------------------------------------------------------------------------
@@ -844,9 +846,11 @@ fn fixture_classify() {
         c("GeneralNPC_Duty_Armor", "Battle_Varta_Armor"),
         cfg.category_id("NpcLoadout")
     );
+    // Trader-named blocks are excluded from the family categories and
+    // classified on the TRADERS page (Universal / Other).
     assert_eq!(
         c("DynamicTraderItemGenerator", "GunMark_SP"),
-        cfg.category_id("AmmoWeapon")
+        cfg.category_id("UniversalOther")
     );
 }
 
@@ -863,6 +867,7 @@ fn fixture_traders() {
         .category_id("UniversalOther")
         .expect("UniversalOther category");
     let armor = cfg.category_id("Armor").expect("Armor category");
+    let food = cfg.category_id("Food").expect("Food category");
     let grenade = cfg.category_id("Grenade").expect("Grenade category");
     let npc = cfg.category_id("NpcLoadout").expect("NpcLoadout category");
 
@@ -907,6 +912,15 @@ fn fixture_traders() {
         ws.categories_of(medkit).first().copied(),
         Some(universal),
         "delegation target block classified UniversalOther"
+    );
+
+    // Shared trader sub-pool (name contains "Trader"): excluded from its
+    // item family (Food) and classified UniversalOther.
+    let bread = find_id(&ws, "Trader_Food_Fixture_ItemGenerator", "Bread");
+    assert!(!ws.in_category(bread, food), "trader pool leaked into Food");
+    assert!(
+        ws.in_category(bread, universal),
+        "trader pool not in UniversalOther"
     );
 
     // Non-trade faction block: unaffected, still NpcLoadout.

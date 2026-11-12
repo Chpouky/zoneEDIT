@@ -1453,7 +1453,7 @@ file_roles = ["weapon_npc"]
 category = "NpcLoadout"
 file_roles = ["dynamic_npc"]
 block = { prefix = ["GeneralNPC", "GuardNPC", "GeneralZombie", "Duga_", "Granit_"] }
-exclude_block = { contains = ["TradeItemGenerator"] }
+exclude_block = { contains = ["Trade", "trader"] }
 
 # Breakable medical crates (delegations included).
 [[rules]]
@@ -1515,7 +1515,7 @@ item = { exact = [
 category = "AmmoWeapon"
 exclude_file_roles = ["stashes"]
 has_fields = ["AmmoMinCount", "AmmoMaxCount"]
-exclude_block = { contains = ["TradeItemGenerator"] }
+exclude_block = { contains = ["Trade", "trader"] }
 
 # Item families by name. Order matters: the quest patterns are the
 # widest (a quest armor also carries the _Armor suffix).
@@ -1532,22 +1532,22 @@ item = { prefix = ["Blueprint_"], suffix = ["PDA"], contains = ["_Key_", "Note",
   "SuppressorDevicePart",
   "E03_02_OldTechDocs_X18",
 ] }
-exclude_block = { contains = ["TradeItemGenerator"] }
+exclude_block = { contains = ["Trade", "trader"] }
 
 [[rules]]
 category = "Artifact"
 item = { prefix = ["CArtifact", "FArtifact", "GArtifact", "EArtifact", "AArtifact"] }
-exclude_block = { contains = ["TradeItemGenerator"] }
+exclude_block = { contains = ["Trade", "trader"] }
 
 [[rules]]
 category = "Food"
 item = { exact = ["Bread", "Sausage", "CannedFood", "Vodka", "Beer", "Water", "Milk", "Energetic"] }
-exclude_block = { contains = ["TradeItemGenerator"] }
+exclude_block = { contains = ["Trade", "trader"] }
 
 [[rules]]
 category = "Grenade"
 item = { exact = ["GrenadeF1", "GrenadeRGD5"] }
-exclude_block = { contains = ["TradeItemGenerator"] }
+exclude_block = { contains = ["Trade", "trader"] }
 
 [[rules]]
 category = "Loot"
@@ -1556,23 +1556,23 @@ item = { exact = [
   "PseudodogLoot", "PseudogiantLoot", "FleshLoot", "ControllerLoot",
   "PoltergeistLoot", "BurerLoot", "SnorkLoot", "TushkanLoot", "BlinddogLoot",
 ] }
-exclude_block = { contains = ["TradeItemGenerator"] }
+exclude_block = { contains = ["Trade", "trader"] }
 
 [[rules]]
 category = "Armor"
 item = { suffix = ["_Armor", "_Helmet"], prefix = ["NVG_", "Binoculars_"] }
-exclude_block = { contains = ["TradeItemGenerator"] }
+exclude_block = { contains = ["Trade", "trader"] }
 
 # Anomaly detectors (Gilka / Veles / Echo / Oko / Bear).
 [[rules]]
 category = "Detectors"
 item = { exact = ["Gilka", "Veles", "Echo", "Oko", "Bear"] }
-exclude_block = { contains = ["TradeItemGenerator"] }
+exclude_block = { contains = ["Trade", "trader"] }
 
 [[rules]]
 category = "Attach"
 item = { prefix = ["RU_", "EN_"], exact = ["Hercules", "DetectorGilka"] }
-exclude_block = { contains = ["TradeItemGenerator"] }
+exclude_block = { contains = ["Trade", "trader"] }
 
 # ---------------------------------------------------------------------------
 # TRADERS page: one rule per location (first match wins; the item-family
@@ -1584,12 +1584,12 @@ exclude_block = { contains = ["TradeItemGenerator"] }
 [[rules]]
 category = "Zalesie"
 delegations = "include"
-block = { prefix = ["TraderZalesie", "ZalesieTechnician"] }
+block = { prefix = ["TraderZalesie", "ZalesieTrader", "ZalesieTechnician"] }
 
 [[rules]]
 category = "Terricon"
 delegations = "include"
-block = { prefix = ["Bartender_Terricon", "Medic_Terricon", "TerriconTechnician", "TraderTerikon"] }
+block = { prefix = ["Bartender_Terricon", "Medic_Terricon", "TerriconTechnician", "TraderTerikon", "TerriconTrader"] }
 
 [[rules]]
 category = "Sultansk"
@@ -1634,7 +1634,7 @@ block = { prefix = ["CementPlant"] }
 [[rules]]
 category = "ChemicalPlant"
 delegations = "include"
-block = { prefix = ["Bartender_ChemicalPlant", "TechnicianChemicalPlant", "TraderChemicalPlant"] }
+block = { prefix = ["Bartender_ChemicalPlant", "TechnicianChemicalPlant", "TraderChemicalPlant", "Himzavod"] }
 
 [[rules]]
 category = "Pripyat"
@@ -1674,7 +1674,7 @@ block = { prefix = ["Suska", "TraderSuska"] }
 [[rules]]
 category = "Selma"
 delegations = "include"
-block = { prefix = ["Selma"] }
+block = { prefix = ["Selma", "supack_trader"] }
 
 [[rules]]
 category = "PowerPlug"
@@ -1682,9 +1682,15 @@ delegations = "include"
 block = { prefix = ["PowerPlug"] }
 
 # Universal shops + faction traders (GeneralNPC_TradeItemGenerator and
-# its _Bandit / _Duty / … variants).
+# its _Bandit / _Duty / … variants) + the shared trader sub-pools and
+# wandering-trader generators (first match wins, so the location rules
+# above keep their own Trader* blocks).
 [[rules]]
 category = "UniversalOther"
 delegations = "include"
-block = { prefix = ["BartenderUniversal", "MedicUniversal", "MedicNoon", "GeneralNPC_TradeItemGenerator"] }
+block = { prefix = [
+  "BartenderUniversal", "MedicUniversal", "MedicNoon", "GeneralNPC_TradeItemGenerator",
+  "Trader", "AllTrader", "DynamicTrader", "RC_TraderNPC", "MainTraderItemGeneratorV1",
+  "SvoraTrader", "VoentorgTrader", "SkadovskTrader",
+] }
 

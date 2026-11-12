@@ -18,6 +18,17 @@
   item-spawn categories (armor, grenades, detectors, food, …) — classification
   is config-only: a new `exclude_block` rule matcher on `[[rules]]` + the 21
   TRADERS categories/rules.
+- **All Trader* blocks moved to the TRADERS page**: not only the 64 shops —
+  every trader-named block of the loaded files (97 total: the shared
+  sub-pools the shops delegate to, e.g. `Trader_T2_Guns`, and the
+  wandering-NPC-trader generators) now lives on the TRADERS page, each in
+  its location category or **Universal / Other** when no location applies.
+  Rule of thumb: a block whose name contains "Trade" or "trader" is a
+  trader block — none of them appears in the item-spawn categories anymore
+  (weapons loaded ammo, food & drink, grenades, armor & NVG, attachments,
+  detectors, …). The TRADERS page is also uncolored: the delegation row
+  tint is skipped there (it only serves to group a stock seen in two
+  places, like the Medical Crates on Item Spawns).
 
 ### UI
 

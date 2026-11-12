@@ -33,7 +33,7 @@ pub const OVERRIDE_FILE: &str = "zoneedit.toml";
 pub struct CategoryId(pub u16);
 
 impl CategoryId {
-    /// Index dans [`Config::categories`].
+    /// Index into [`Config::categories`].
     pub fn idx(self) -> usize {
         self.0 as usize
     }
