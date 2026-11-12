@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### UI
+
+- The three batch buttons of the batch bar ("Set Chance…", "Set Min/Max…",
+  "Set Min/Max Spawn %…") are no longer shipped: the bottom bar only shows
+  the selection counter, "Reset Selected", "Reset All" and the PRESET
+  dropdown. The feature itself is kept — batch buttons are config-only
+  (`[[batch]]` entries), so re-adding one restores the button; the headless
+  tests inject the specs via a config override in the meantime.
+
 ## 0.10.0
 
 ### Features

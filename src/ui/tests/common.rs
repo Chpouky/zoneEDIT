@@ -13,6 +13,37 @@ pub(crate) fn test_workspace() -> Workspace {
     crate::io::load::load(&root).expect("loading of the fixtures")
 }
 
+/// Batch button specs, injected by the batch-modal tests via a config
+/// override. The shipped config (`assets/config/default.toml`) carries
+/// no `[[batch]]` entry — the buttons are hidden — but the feature is
+/// kept: re-adding the entries there restores them, and these tests keep
+/// the modal covered in the meantime.
+pub(crate) const BATCH_TEST_TOML: &str = "\
+[[batch]]
+label = \"Set Chance…\"
+fields = [\"Chance\"]
+inputs = [\"Chance\"]
+
+[[batch]]
+label = \"Set Min/Max…\"
+fields = [\"MinCount\", \"MaxCount\"]
+inputs = [\"Min\", \"Max\"]
+
+[[batch]]
+label = \"Set Min/Max Spawn %…\"
+fields = [\"MinSpawnChance\", \"MaxSpawnChance\"]
+inputs = [\"Min\", \"Max\"]
+";
+
+/// Like `test_workspace`, but with the batch buttons enabled.
+pub(crate) fn test_workspace_batch() -> Workspace {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests")
+        .join("fixtures");
+    let config = crate::config::Config::with_override(BATCH_TEST_TOML).expect("batch test config");
+    crate::io::load::load_with(&root, std::sync::Arc::new(config)).expect("loading of the fixtures")
+}
+
 /// Commit with the same behaviour as the UI (st.msg set in case of refusal).
 pub(crate) fn do_commit(ws: &mut Workspace, st: &mut EditorState, key: FieldId, value: &str) {
     match crate::ui::ops::commit(ws, key, value) {

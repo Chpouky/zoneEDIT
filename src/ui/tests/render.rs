@@ -244,9 +244,9 @@ fn rank_filter_selects_rank_table() {
             .collect()
     };
 
-    // Real set labels: "Set <n> · <item>" (the header buttons
-    // "Set Chance…" / "Set Min/Max…" must not
-    // to count: their suffix does not start with a digit).
+    // Real set labels: "Set <n> · <item>" — any other "Set …" label
+    // (suffix not starting with a digit, e.g. a batch button enabled
+    // by a config override) does not count.
     let set_labels = |ts: &[String]| -> Vec<String> {
         ts.iter()
             .filter(|t| {

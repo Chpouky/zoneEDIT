@@ -886,24 +886,15 @@ max = "MaxDeadNPCLoadedAmmoCount"
 min = "EffectiveFireDistanceMin"
 max = "EffectiveFireDistanceMax"
 
-[[batch]]
-label = "Set Chance…"
-fields = ["Chance"]
-inputs = ["Chance"]
-
-[[batch]]
-label = "Set Min/Max…"
-fields = ["MinCount", "MaxCount"]
-inputs = ["Min", "Max"]
-
-[[batch]]
-label = "Set Min/Max Spawn %…"
-fields = ["MinSpawnChance", "MaxSpawnChance"]
-inputs = ["Min", "Max"]
+# Batch buttons ("Set Chance…", "Set Min/Max…", …): none in the shipped
+# config — the batch bar only shows "Reset Selected" / "Reset All".
+# The feature is kept: re-adding a [[batch]] entry here restores the button
+# (the headless tests in src/ui/tests/menus_batch.rs inject the same specs
+# via a config override).
 
 # ---------------------------------------------------------------------------
-# Catégories (« spawn sources ») : ordre = ordre de la barre latérale.
-# `group` = titre de section dans la barre latérale.
+# Categories ("spawn sources"): order = sidebar order.
+# `group` = sidebar section title.
 # ---------------------------------------------------------------------------
 [[categories]]
 id = "MedCrate"

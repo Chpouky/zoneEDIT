@@ -95,7 +95,7 @@ fn preset_menu_enter_creates_preset() {
 /// converted to the cfg format (`25` → `0.25f`), out of range → rejected.
 #[test]
 fn set_spawn_batch_button_applies_percent() {
-    let mut ws = test_workspace();
+    let mut ws = test_workspace_batch();
     let mut st = EditorState::default();
     st.view.category = ws
         .config()
@@ -370,7 +370,7 @@ fn preset_menu_stays_open_and_closes_outside() {
 /// not stuck to the left edge.
 #[test]
 fn set_chance_modal_is_centered_and_snug() {
-    let mut ws = test_workspace();
+    let mut ws = test_workspace_batch();
     let mut st = EditorState::default();
     st.view.category = ws
         .config()
