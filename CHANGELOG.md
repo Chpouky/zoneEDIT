@@ -10,12 +10,14 @@
   Terricon, Sultansk, Malakhit, Rostok, Yanov, Asylum, Ikar, Newbie Village,
   Cement Plant, Chemical Plant, Pripyat, Shevchenko, Varta, Backwater, Red
   Forest, Eger, Suska, Selma, Power Plug) plus **Universal / Other** (universal
-  shops + the NPC faction traders). Each shop is an always-expanded parent row;
-  its items are drawn as "↳" child rows with the columns **Chance**,
-  **Min Count**, **Max Count**, **Min Dur**, **Max Dur** (delegation references
-  to other generators are shown too). The trade blocks no longer leak into the
+  shops + the NPC faction traders). Each shop is a regular foldable generator
+  row (same layout as Item Spawns — expand it to see the stock): the items
+  are plain rows with the columns **Chance**, **Min Count**, **Max Count**,
+  **Min Dur**, **Max Dur** (delegation references to other generators are
+  shown as "↳ target" rows). The trade blocks no longer leak into the
   item-spawn categories (armor, grenades, detectors, food, …) — classification
-  is config-only: a new `exclude_block` rule matcher + `parser.trade_block_markers`.
+  is config-only: a new `exclude_block` rule matcher on `[[rules]]` + the 21
+  TRADERS categories/rules.
 
 ### UI
 

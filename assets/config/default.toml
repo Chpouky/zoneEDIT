@@ -83,10 +83,6 @@ block_entry_roles = ["anomalies", "weapon_general", "weapon_player", "weapon_npc
 rank_scope_roles = ["artifact_spawner"]
 # Scope listing the items a spawner spawns: the first SID is the row's icon.
 icon_list_scope = "ListOfArtifacts"
-# Blocks whose items are drawn beneath an always-expanded parent row
-# (TRADERS page), matched by block-name substring (some blocks carry the
-# marker in the middle of the name: GeneralNPC_TradeItemGenerator_*).
-trade_block_markers = ["TradeItemGenerator"]
 
 # cfg key aliases: alias -> canonical key.
 # - `weight` (lowercase) is used by some generators (e.g.
@@ -1217,10 +1213,9 @@ columns = [
 ]
 
 # ---------------------------------------------------------------------------
-# "TRADERS" section: trader generator blocks (`*_TradeItemGenerator`),
-# grouped by location. The items are drawn indented beneath an
-# always-expanded parent row (`parser.trade_block_markers`); the
-# "↳ target" delegation rows are part of the view.
+# "TRADERS" section: trader generator blocks (`*TradeItemGenerator*`),
+# grouped by location. Rendered as regular foldable generator rows (same
+# as Item Spawns); the "↳ target" delegation rows are part of the view.
 # ---------------------------------------------------------------------------
 [[categories]]
 id = "Zalesie"

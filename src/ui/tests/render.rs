@@ -1498,6 +1498,7 @@ fn traders_rows_render() {
         .unwrap_or_else(|| panic!("Sultansk category present"));
     let ctx = egui::Context::default();
     crate::ui_kit::apply_theme(&ctx);
+    // Frame 1 (blocks collapsed by default, like Item Spawns).
     ctx.begin_pass(raw_1440());
     show_editor(&ctx, &mut ws, &mut st);
     let out = ctx.end_pass();
@@ -1515,26 +1516,17 @@ fn traders_rows_render() {
         texts.iter().any(|t| t == "Sultansk"),
         "sidebar row 'Sultansk' missing.\n{dump}"
     );
-    // Parent row: the block name, in the item name column.
+    // Dropdown row: the block name.
     assert!(
         texts
             .iter()
             .any(|t| t.contains("SultanskTrader_TradeItemGenerator")),
-        "trade parent row missing.\n{dump}"
+        "trade dropdown row missing.\n{dump}"
     );
-    // Item child rows: ONE "↳" marker + name (long names may be fitted).
-    for item in ["Battle_Varta_Armor", "Medkit", "GrenadeF1"] {
-        assert!(
-            texts.iter().any(|t| t.starts_with('↳') && t.contains(item)),
-            "child row '↳ {item}' missing.\n{dump}"
-        );
-    }
-    // Delegation child row: the target generator name.
+    // Collapsed: the items of the block are not drawn.
     assert!(
-        texts
-            .iter()
-            .any(|t| t.starts_with('↳') && t.contains("MedicUniversal")),
-        "delegation child row missing.\n{dump}"
+        texts.iter().all(|t| !t.contains("Battle_Varta_Armor")),
+        "items must be hidden while the block is folded.\n{dump}"
     );
     // Header: the long labels of the trade columns (uppercased).
     for h in ["CHANCE", "MIN COUNT", "MAX COUNT", "MIN DUR", "MAX DUR"] {
@@ -1543,4 +1535,41 @@ fn traders_rows_render() {
             "header '{h}' missing.\n{dump}"
         );
     }
+
+    // Frame 2: expand the block — the items appear as PLAIN rows (no "↳",
+    // same layout as the Item Spawns categories).
+    let bid = ws
+        .blocks()
+        .iter()
+        .position(|b| b.name == "SultanskTrader_TradeItemGenerator")
+        .map(|i| crate::domain::BlockId(i as u32))
+        .expect("SultanskTrader block present");
+    st.view.expanded.insert(bid);
+    ctx.begin_pass(raw_1440());
+    show_editor(&ctx, &mut ws, &mut st);
+    let out = ctx.end_pass();
+    let texts: Vec<String> = out
+        .shapes
+        .iter()
+        .filter_map(|cs| match &cs.shape {
+            egui::Shape::Text(t) => Some(t.galley.text().to_string()),
+            _ => None,
+        })
+        .collect();
+    let dump = texts.join("\n");
+    for item in ["Battle_Varta_Armor", "Medkit", "GrenadeF1"] {
+        assert!(
+            texts
+                .iter()
+                .any(|t| t.contains(item) && !t.starts_with('↳')),
+            "plain item row '{item}' missing.\n{dump}"
+        );
+    }
+    // Delegation row: keeps the "↳ target" label (Item Spawns convention).
+    assert!(
+        texts
+            .iter()
+            .any(|t| t.starts_with('↳') && t.contains("MedicUniversal")),
+        "delegation row missing.\n{dump}"
+    );
 }

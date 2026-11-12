@@ -138,21 +138,6 @@ impl RowLayout {
         }
     }
 
-    /// Trader generator row (TRADERS page): checkbox + name in the item
-    /// name column (its items are drawn below it, indented by `HIER_INDENT`
-    /// with the "↳" marker) — no fold triangle (the row is never folded)
-    /// and no icon.
-    pub(crate) fn trade() -> Self {
-        Self {
-            h: ROW_H_TALL,
-            cb: Some(CB_CENTER_X),
-            tri: None,
-            icon_x: None,
-            name_x: ITEM_NAME_X,
-            set_label_x: None,
-        }
-    }
-
     /// Set/caliber row: itemset label (or group label in the name column) +
     /// value cells, no checkbox and no triangle.
     pub(crate) fn set_row() -> Self {
@@ -211,11 +196,9 @@ impl RowLayout {
 
 /// Paints the block header label: the name (strong) + the "L{line}" label
 /// (muted, monospace) + the optional refs tag (child ui, natural size).
-/// `name_x` is the name offset from the left edge of the row: the block
-/// header uses `GEN_NAME_X` (right of the fold triangle), the trader
-/// parent row uses the item name column (`ITEM_NAME_X` — its children are
-/// indented below it).
-/// Text painted on a generator / trader parent row: the block name,
+/// `name_x` is the name offset from the left edge of the row (the block
+/// header uses `GEN_NAME_X`, right of the fold triangle).
+/// Text painted on a generator row: the block name,
 /// its source line and the optional delegation-refs tag.
 pub(crate) struct BlockLabel<'a> {
     /// X of the name (RowLayout::name_x — depends on the row type).
@@ -272,12 +255,7 @@ mod tests {
     #[test]
     fn columns_are_aligned_across_row_types() {
         // The checkbox column is common to all the rows that have one.
-        for rl in [
-            RowLayout::item(),
-            RowLayout::generator(),
-            RowLayout::rank(),
-            RowLayout::trade(),
-        ] {
+        for rl in [RowLayout::item(), RowLayout::generator(), RowLayout::rank()] {
             assert_eq!(rl.cb, Some(CB_CENTER_X));
         }
         // The headers (no icon) put their triangle in the icon slot or
@@ -288,12 +266,6 @@ mod tests {
         assert!(gen.name_x < ITEM_NAME_X);
         assert!(rank.name_x < ITEM_NAME_X);
         assert_eq!(rank.name_x, RowLayout::set_row().name_x);
-        // The trader parent row: no triangle (never folded), name in the
-        // item name column (its children are indented below it).
-        let trade = RowLayout::trade();
-        assert!(trade.tri.is_none());
-        assert_eq!(trade.name_x, ITEM_NAME_X);
-        assert_eq!(trade.icon_x, None);
     }
 
     #[test]

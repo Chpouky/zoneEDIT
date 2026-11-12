@@ -87,13 +87,6 @@ pub struct ParserConfig {
     /// spawners: one `Newbie`/`Experienced`/… sub-block per rank).
     #[serde(default)]
     pub rank_scope_roles: Vec<String>,
-    /// Block-name markers identifying a trader generator block: its items
-    /// are drawn indented beneath an always-expanded parent row (the
-    /// "TRADERS" page — the row is never folded). Matched as a substring:
-    /// some blocks carry the marker in the middle of the name
-    /// (`GeneralNPC_TradeItemGenerator_<faction>`).
-    #[serde(default)]
-    pub trade_block_markers: Vec<String>,
     /// Name of the scope listing the items an entry stands for (world
     /// spawners: `ListOfArtifacts`); the first listed SID becomes the
     /// display icon hint of the block's rows (never exported).

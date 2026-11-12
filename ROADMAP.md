@@ -188,21 +188,19 @@ shops (currently under NPC Loadouts) move to the new page too.
         TRADERS rules match the blocks by name prefix (block names are not
         uniform: `TraderSuska`, `Bartender_ChemicalPlant`, …). Config-only
         otherwise.
-      - **Rendering (hierarchy, user-confirmed)**: each generator is a flat
-        parent row (checkbox + block name, always expanded — no fold), its
-        items are child rows with the single "↳" prefix + 1× `HIER_INDENT`
-        (same model as the anomaly/weapon hierarchy). Items keep their own
-        icon when one exists (otherwise the block's closest-ancestor icon).
-        Block detection is config-driven (`parser.trade_block_markers`,
-        substring match — `GeneralNPC_TradeItemGenerator_<faction>` carries
-        the marker mid-name).
+      - **Rendering (Item Spawns model)**: each shop is a regular foldable
+        generator row (collapsed by default, like Food & Drink); its items
+        are plain rows inside the dropdown (no "↳" — the items are not
+        children of the shop, unlike the anomaly/weapon hierarchy), the
+        delegation rows keep the "↳ target" label. No trade-specific code in
+        the renderer: block detection and the page are config-only.
       - **Trade filter**: the existing `st.view.trade` topbar filter stays —
         it is a cross-section search ("trade" in SID/block/context),
         independent of the new section.
       - Tests: `fixture_traders` (classification + `exclude_block` +
-        delegation), headless render test `traders_rows_render` (parent row +
-        "↳" child rows + delegation row + 5 headers), real-gamedata
-        `real_traders_page` (64 blocks, 534 rows, 0 leakage).
+        delegation), headless render test `traders_rows_render` (dropdown
+        row + plain item rows after expand + delegation row + 5 headers),
+        real-gamedata `real_traders_page` (64 blocks, 534 rows, 0 leakage).
 
 ## Next up (v2) — ordered by dependency
 
