@@ -80,7 +80,7 @@ fn table_rows_are_painted() {
         .expect("MedCrate category");
     let bid = ws
         .entry_ids()
-        .find(|&id| ws.category(id) == Some(med))
+        .find(|&id| ws.in_category(id, med))
         .expect("med crate entry");
     let block = ws.block(ws.entry(bid).block).name.clone();
     let ok = texts
@@ -448,7 +448,7 @@ fn rank_row_is_collapsible_subdropdown() {
         })
         .expect("StashMedicine_Cheap entry with an itemset");
     let cheap = ws.entry(cheap_id).clone();
-    let rank = cheap.ctx.rank_label.clone().expect("rang du bloc (Newbie)");
+    let rank = cheap.ctx.rank_label.clone().expect("block rank (Newbie)");
     let rkey = (cheap.block, rank.clone());
     st.view.expanded.insert(cheap.block);
 
@@ -676,7 +676,7 @@ fn spawn_source_sidebar_is_contextual_to_file_filter() {
     show_editor(&ctx, &mut ws, &mut st);
     let out = ctx.end_pass();
 
-    // Textes peints dans la sidebar (x < 250) et partout.
+    // Texts painted in the sidebar (x < 250) and everywhere.
     let sidebar: Vec<String> = out
         .shapes
         .iter()
@@ -913,8 +913,8 @@ fn anomalies_render_hierarchy() {
     );
 
     // Its child (ElectroAnomaly_Dynamic) is rendered BELOW the parent, with a
-    // "↳" prefix glued to its name (exactly like a delegation row) — same name
-    // column as the parent, no icon, no separate arrow.
+    // "↳" marker glued to its name (exactly like a delegation row) and the
+    // name indented 1×HIER_INDENT to the right — no icon, no separate arrow.
     let (root_x, root_y) = texts
         .iter()
         .find(|(t, x, _)| t == "ElectroAnomaly" && *x > 100)
@@ -925,11 +925,12 @@ fn anomalies_render_hierarchy() {
         .find(|(t, x, _)| t == "↳ ElectroAnomaly_Dynamic" && *x > 100)
         .map(|(_, x, y)| (*x, *y))
         .unwrap_or_else(|| panic!("child '↳ ElectroAnomaly_Dynamic' missing.\n{dump}"));
-    // The child name aligns with the parent's name column (the "↳" prefix is
-    // the only difference, like a delegation row).
-    assert_eq!(
-        child_x, root_x,
-        "child name must align with the parent (child_x={child_x} root_x={root_x})"
+    // The child name is indented one hierarchy level right of the parent
+    // (one "↳" marker, depth encoded by the offset — see HIER_INDENT).
+    let ind = crate::ui::metrics::HIER_INDENT.round() as i32;
+    assert!(
+        (child_x - (root_x + ind)).abs() <= 1,
+        "child name must be indented 1×HIER_INDENT right of the parent\n(child_x={child_x} root_x={root_x})"
     );
     assert!(
         child_y > root_y,
@@ -973,7 +974,7 @@ fn artifact_spawner_page_renders() {
     st.view.category = cat;
     // Both fixture spawners, expanded.
     for id in ws.entry_ids() {
-        if ws.category(id) == Some(cat) {
+        if ws.in_category(id, cat) {
             st.view.expanded.insert(ws.entry(id).block);
         }
     }
@@ -1001,8 +1002,9 @@ fn artifact_spawner_page_renders() {
         .collect::<Vec<_>>()
         .join("\n");
 
-    // Column headers (config `long`, uppercased, short enough for the
-    // ~70 px column grid — the full name lives in the modal's `short`).
+    // Column headers: the config `long` names, uppercased. The columns are
+    // sized on these labels (no truncation); the full `long` name lives in
+    // the field modal.
     for h in [
         "COUNT", "RADIUS", "MIN COOL", "MAX COOL", "BASE", "BONUS", "COMMON", "EPIC",
     ] {
@@ -1033,4 +1035,440 @@ fn artifact_spawner_page_renders() {
         texts.iter().any(|(t, _, _)| t == "4"),
         "Count value missing.\n{dump}"
     );
+}
+
+#[test]
+fn weapon_rows_render() {
+    let mut ws = test_workspace();
+    let section_idx = ws
+        .config()
+        .sections()
+        .iter()
+        .position(|s| s == "STATS")
+        .expect("STATS section present");
+    let mut st = EditorState::default();
+    st.view.section = section_idx;
+    // Each weapon family: the sidebar row is painted (short label) and the
+    // table shows the weapon name of the fixture block.
+    for (cat, short, name) in [
+        ("WeaponFire", "Firing", "GunTestPM_HG"),
+        ("WeaponJams", "Jamming", "TemplateWeapon"),
+        ("NpcWeaponCombat", "NPC Combat", "GunTestPM_HG_NPC"),
+    ] {
+        st.view.category = ws
+            .config()
+            .category_id(cat)
+            .unwrap_or_else(|| panic!("{cat} category present"));
+        let ctx = egui::Context::default();
+        crate::ui_kit::apply_theme(&ctx);
+        ctx.begin_pass(raw_1440());
+        show_editor(&ctx, &mut ws, &mut st);
+        let out = ctx.end_pass();
+        let texts: Vec<String> = out
+            .shapes
+            .iter()
+            .filter_map(|cs| match &cs.shape {
+                egui::Shape::Text(t) => Some(t.galley.text().to_string()),
+                _ => None,
+            })
+            .collect();
+        let dump = texts.join("\n");
+        assert!(
+            texts.iter().any(|t| t == short),
+            "{cat}: sidebar row '{short}' missing.\n{dump}"
+        );
+        // Inheriting blocks (refkey) are painted with the `↳` prefix, and
+        // long names are truncated with `…` in the narrow name column —
+        // match on a prefix.
+        let prefix: String = name.chars().take(12).collect();
+        assert!(
+            texts.iter().any(|t| t.contains(&prefix)),
+            "{cat}: row starting with '{prefix}' missing.\n{dump}"
+        );
+    }
+    // Weapon GeneralSetup is 4 levels deep in the fixture (TemplateWeapon
+    // → family template → gun → gun variant, like the real file): the
+    // hierarchy is walked recursively, ONE "↳" marker per child (whatever
+    // the depth) and the name indented by `depth × HIER_INDENT` to the
+    // right — the offset, not a stack of arrows, encodes the depth.
+    // Tints: each family (depth ≤ 1, with children) gets its OWN color
+    // from GROUP_TINTS; guns and deeper variants INHERIT the family tint —
+    // a depth-2 parent opens no new color.
+    // `st` is still on the last loop category (NpcWeaponCombat) — switch
+    // back to WeaponFire for the hierarchy assertions.
+    st.view.category = ws
+        .config()
+        .category_id("WeaponFire")
+        .unwrap_or_else(|| panic!("WeaponFire category present"));
+    let (labels, rects) = {
+        let ctx = egui::Context::default();
+        crate::ui_kit::apply_theme(&ctx);
+        ctx.begin_pass(raw_1440());
+        show_editor(&ctx, &mut ws, &mut st);
+        let out = ctx.end_pass();
+        let labels = out
+            .shapes
+            .iter()
+            .filter_map(|cs| match &cs.shape {
+                egui::Shape::Text(t) => Some((t.pos, t.galley.text().to_string())),
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+        let rects = out
+            .shapes
+            .iter()
+            .filter_map(|cs| match &cs.shape {
+                egui::Shape::Rect(r) => Some((r.rect, r.fill)),
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+        (labels, rects)
+    };
+    let dump: Vec<String> = labels.iter().map(|(_, t)| t.as_str().into()).collect();
+    let find =
+        |s: &str| -> Option<(egui::Pos2, String)> { labels.iter().find(|(_, t)| t == s).cloned() };
+    let root = find("TemplateWeapon").expect("TemplateWeapon row");
+    // The exact text carries a SINGLE arrow (a stacked-arrow regression
+    // would paint "↳ ↳ …" and miss this lookup).
+    let fam1 = find("↳ TemplateTestPistol").unwrap_or_else(|| {
+        panic!(
+            "family template row missing (level 2).\n{}",
+            dump.join("\n")
+        )
+    });
+    let fam2 = find("↳ TemplateTestRifle")
+        .unwrap_or_else(|| panic!("second family row missing.\n{}", dump.join("\n")));
+    let gun1 = find("↳ GunTestPM_HG")
+        .unwrap_or_else(|| panic!("gun row missing (level 3).\n{}", dump.join("\n")));
+    let gun2 = find("↳ GunTestRifle_ST")
+        .unwrap_or_else(|| panic!("second family gun missing.\n{}", dump.join("\n")));
+    let scope1 = find("↳ GunTestPM_HG_Scope")
+        .unwrap_or_else(|| panic!("gun variant row missing (level 4).\n{}", dump.join("\n")));
+    let ind = crate::ui::metrics::HIER_INDENT;
+    let near = |a: f32, b: f32| (a - b).abs() < 1.0;
+    assert!(
+        near(fam1.0.x, root.0.x + ind),
+        "family template must be indented 1×HIER_INDENT: {} vs {}",
+        fam1.0.x,
+        root.0.x + ind
+    );
+    assert!(
+        near(gun1.0.x, root.0.x + 2.0 * ind),
+        "gun must be indented 2×HIER_INDENT: {} vs {}",
+        gun1.0.x,
+        root.0.x + 2.0 * ind
+    );
+    assert!(
+        near(fam2.0.x, root.0.x + ind),
+        "second family must be indented 1×HIER_INDENT: {} vs {}",
+        fam2.0.x,
+        root.0.x + ind
+    );
+    assert!(
+        near(gun2.0.x, root.0.x + 2.0 * ind),
+        "second family gun must be indented 2×HIER_INDENT: {} vs {}",
+        gun2.0.x,
+        root.0.x + 2.0 * ind
+    );
+    assert!(
+        near(scope1.0.x, root.0.x + 3.0 * ind),
+        "gun variant must be indented 3×HIER_INDENT: {} vs {}",
+        scope1.0.x,
+        root.0.x + 3.0 * ind
+    );
+    // Tints: row_frame paints the group tint as a full-row filled rect;
+    // match it to the row by the name position.
+    let palette = crate::ui_kit::c::GROUP_TINTS;
+    let tint_of = |name: &str| -> Option<egui::Color32> {
+        let (p, _) = labels.iter().find(|(_, t)| t == name)?;
+        rects
+            .iter()
+            .find(|(r, f)| r.contains(*p) && palette.contains(f))
+            .map(|(_, f)| *f)
+    };
+    let root_t = tint_of("TemplateWeapon").expect("root tint");
+    let fam1_t = tint_of("↳ TemplateTestPistol").expect("fam1 tint");
+    let gun1_t = tint_of("↳ GunTestPM_HG").expect("gun1 tint");
+    let scope1_t = tint_of("↳ GunTestPM_HG_Scope").expect("scope1 tint");
+    let fam2_t = tint_of("↳ TemplateTestRifle").expect("fam2 tint");
+    let gun2_t = tint_of("↳ GunTestRifle_ST").expect("gun2 tint");
+    assert_eq!(gun1_t, fam1_t, "gun inherits the family tint");
+    assert_eq!(
+        scope1_t, fam1_t,
+        "depth-3 variant inherits the FAMILY tint (a depth-2 parent opens no new color)"
+    );
+    assert_eq!(
+        gun2_t, fam2_t,
+        "second family gun inherits its own family tint"
+    );
+    assert_ne!(fam1_t, fam2_t, "each family must get its own color");
+    assert_ne!(root_t, fam1_t, "root template keeps its own color");
+    assert_ne!(root_t, fam2_t, "root template keeps its own color");
+}
+
+/// A hierarchy child whose parent is excluded by the search is still
+/// painted (at the top level, no "↳"): a search for a gun name matches no
+/// template, so without the fallback the table would be empty.
+#[test]
+fn search_shows_child_with_hidden_parent() {
+    let mut ws = test_workspace();
+    let section_idx = ws
+        .config()
+        .sections()
+        .iter()
+        .position(|s| s == "STATS")
+        .expect("STATS section present");
+    let mut st = EditorState::default();
+    st.view.section = section_idx;
+    st.view.category = ws
+        .config()
+        .category_id("WeaponFire")
+        .unwrap_or_else(|| panic!("WeaponFire category present"));
+    st.view.search = "GunTestPM".into();
+    let ctx = egui::Context::default();
+    crate::ui_kit::apply_theme(&ctx);
+    ctx.begin_pass(raw_1440());
+    show_editor(&ctx, &mut ws, &mut st);
+    let out = ctx.end_pass();
+    let texts: Vec<String> = out
+        .shapes
+        .iter()
+        .filter_map(|cs| match &cs.shape {
+            egui::Shape::Text(t) => Some(t.galley.text().to_string()),
+            _ => None,
+        })
+        .collect();
+    let dump = texts.join("\n");
+    assert!(
+        texts.iter().any(|t| t.contains("GunTestPM_HG")),
+        "search 'GunTestPM' must show the gun row (parent templates hidden).\n{dump}"
+    );
+}
+
+/// Value columns are sized on their header labels (the config `long`
+/// names): the labels are painted in full — never truncated with an
+/// ellipsis — and the content of a wide category extends beyond the
+/// window (horizontal scroll, option A of the column-width design).
+#[test]
+fn column_headers_are_not_truncated() {
+    let mut ws = test_workspace();
+    let section_idx = ws
+        .config()
+        .sections()
+        .iter()
+        .position(|s| s == "STATS")
+        .expect("STATS section present");
+    let mut st = EditorState::default();
+    st.view.section = section_idx;
+
+    fn headers(ctx: &egui::Context, ws: &mut Workspace, st: &mut EditorState) -> Vec<String> {
+        ctx.begin_pass(raw_1440());
+        show_editor(ctx, ws, st);
+        let out = ctx.end_pass();
+        out.shapes
+            .iter()
+            .filter_map(|cs| match &cs.shape {
+                egui::Shape::Text(t) => Some(t.galley.text().to_string()),
+                _ => None,
+            })
+            .collect()
+    }
+
+    // WeaponFire (6 columns): the whole value zone fits in the 1440 px
+    // window, so every header label is painted in full.
+    st.view.category = ws.config().category_id("WeaponFire").unwrap();
+    let ctx = egui::Context::default();
+    crate::ui_kit::apply_theme(&ctx);
+    let texts = headers(&ctx, &mut ws, &mut st);
+    let dump = texts.join("\n");
+    for h in ["FIRE INTERVAL", "RECOIL INTERVAL", "FIRE QUEUE COUNT"] {
+        assert!(
+            texts.iter().any(|t| t == h),
+            "header '{h}' missing.\n{dump}"
+        );
+    }
+
+    // NpcWeaponCombat (12 columns): the zone is wider than the window —
+    // the table scrolls horizontally, but the visible labels are still
+    // painted in full.
+    st.view.category = ws.config().category_id("NpcWeaponCombat").unwrap();
+    let ctx = egui::Context::default();
+    crate::ui_kit::apply_theme(&ctx);
+    let texts = headers(&ctx, &mut ws, &mut st);
+    let dump = texts.join("\n");
+    for h in ["BASE DAMAGE", "CHANCE BLEEDING PER SHOT"] {
+        assert!(
+            texts.iter().any(|t| t == h),
+            "header '{h}' missing.\n{dump}"
+        );
+    }
+}
+
+/// The horizontal scroll moves the row names and the editable cells
+/// TOGETHER (regression: the cells used to be positioned in fixed body
+/// coordinates, so only the names and the header labels moved).
+#[test]
+fn cells_scroll_with_the_rows() {
+    let mut ws = test_workspace();
+    let section_idx = ws
+        .config()
+        .sections()
+        .iter()
+        .position(|s| s == "STATS")
+        .expect("STATS section present");
+    let mut st = EditorState::default();
+    st.view.section = section_idx;
+    // A wide category (12 columns) so the horizontal scroll is active.
+    st.view.category = ws.config().category_id("NpcWeaponCombat").unwrap();
+
+    fn is_cell_value(t: &str) -> bool {
+        !t.is_empty()
+            && t.chars()
+                .all(|c| c.is_ascii_digit() || matches!(c, '.' | '-' | '%'))
+    }
+
+    /// One pass; returns (cell value anchors, row name anchors) and the
+    /// position of the "BASE DAMAGE" header label (header lockstep check).
+    fn pass(
+        ctx: &egui::Context,
+        ws: &mut Workspace,
+        st: &mut EditorState,
+        wheel_x: f32,
+    ) -> (
+        Vec<(egui::Pos2, String)>,
+        Vec<egui::Pos2>,
+        Option<egui::Pos2>,
+    ) {
+        let mut raw = raw_1440();
+        // The wheel event only scrolls the area under the pointer: park
+        // it ON a row (the first item row is painted at y ≈ 136).
+        raw.events.push(egui::Event::PointerButton {
+            pos: pos2(700.0, 136.0),
+            button: egui::PointerButton::Primary,
+            pressed: false,
+            modifiers: Default::default(),
+        });
+        if wheel_x != 0.0 {
+            raw.events.push(egui::Event::MouseWheel {
+                unit: egui::MouseWheelUnit::Point,
+                delta: vec2(wheel_x, 0.0),
+                modifiers: Default::default(),
+            });
+        }
+        ctx.begin_pass(raw);
+        show_editor(ctx, ws, st);
+        let out = ctx.end_pass();
+        let (mut cells, mut names, mut hdr) = (Vec::new(), Vec::new(), None);
+        for cs in &out.shapes {
+            if let egui::Shape::Text(t) = &cs.shape {
+                let text = t.galley.text();
+                if is_cell_value(text) && t.pos.x >= 250.0 {
+                    // `x >= 250` keeps the table cells and skips the static
+                    // digit labels of the sidebar (which never scroll).
+                    cells.push((t.pos, text.to_string()));
+                } else if text == "BASE DAMAGE" {
+                    hdr = Some(t.pos);
+                } else if text.contains("GunTestPM_HG") {
+                    names.push(t.pos);
+                }
+            }
+        }
+        (cells, names, hdr)
+    }
+
+    let ctx = egui::Context::default();
+    crate::ui_kit::apply_theme(&ctx);
+    // Baseline (offset 0): capture the anchors.
+    let (cells_a, names_a, hdr_a) = pass(&ctx, &mut ws, &mut st, 0.0);
+    assert!(!cells_a.is_empty(), "no cell values painted (baseline)");
+    assert!(!names_a.is_empty(), "no row name painted (baseline)");
+    let hdr_a = hdr_a.expect("'BASE DAMAGE' header label painted (baseline)");
+
+    // Scroll: the scroll area applies the offset to its content one frame
+    // AFTER the wheel event, so send the wheel for several passes until the
+    // row name has clearly moved to the left.
+    type Snapshot = (
+        Vec<(egui::Pos2, String)>,
+        Vec<egui::Pos2>,
+        Option<egui::Pos2>,
+    );
+    let mut name_dx = 0.0_f32;
+    let mut snapshots: Vec<Snapshot> = Vec::new();
+    for _ in 0..60 {
+        // The wheel delta is smoothed over time: give it a frame of dt.
+        std::thread::sleep(std::time::Duration::from_millis(120));
+        // Negative x: the content moves left, revealing the right columns.
+        let (c, n, h) = pass(&ctx, &mut ws, &mut st, -80.0);
+        if let Some(b) = n.first() {
+            name_dx = names_a[0].x - b.x;
+        }
+        snapshots.push((c, n, h));
+        if name_dx > 40.0 {
+            break;
+        }
+    }
+    // The last snapshot: the one where the scroll has clearly taken effect.
+    let (cells_b, _names_b, hdr_b) = snapshots
+        .pop()
+        .expect("at least one scroll pass was painted");
+    assert!(
+        name_dx > 40.0,
+        "the horizontal scroll had no effect: name_dx={name_dx}"
+    );
+
+    // Every baseline cell is still painted (possibly off-screen), in the same
+    // order: each must have moved by exactly the same amount as the row name.
+    assert_eq!(cells_b.len(), cells_a.len(), "cells lost by scrolling");
+    for ((a, atext), (b, _)) in cells_a.iter().zip(cells_b.iter()) {
+        assert!(
+            (a.x - b.x - name_dx).abs() < 2.0,
+            "cell {atext:?} moved by {} but the row name moved by {name_dx}",
+            a.x - b.x
+        );
+    }
+
+    // Header lockstep: the column labels move by exactly the same amount
+    // as the rows (regression: the header used the POST-update scroll
+    // offset and led the rows by one frame's wheel increment).
+    let hb = hdr_b.expect("'BASE DAMAGE' header label painted (after scroll)");
+    assert!(
+        (hdr_a.x - hb.x - name_dx).abs() < 2.0,
+        "header moved by {} but the row name moved by {name_dx}",
+        hdr_a.x - hb.x
+    );
+
+    // The horizontal scrollbar is pinned to the bottom of the row window
+    // (body bottom = window 810 - status 32 - batch bar 52 = 726), not
+    // under the last row — the fixture category has a single row near
+    // y = 136, so a content-sized bar would sit around y = 160.
+    // (Regression: the default `auto_shrink` of the ScrollArea shrank it
+    // to the rows' height and anchored the bar to the shrunken bottom.)
+    {
+        let mut raw = raw_1440();
+        raw.events.push(egui::Event::PointerButton {
+            pos: pos2(700.0, 136.0),
+            button: egui::PointerButton::Primary,
+            pressed: false,
+            modifiers: Default::default(),
+        });
+        ctx.begin_pass(raw);
+        show_editor(&ctx, &mut ws, &mut st);
+        let out = ctx.end_pass();
+        let body_bottom = 810.0f32 - metrics::STATUS_H - metrics::BATCH_H;
+        let bar = out
+            .shapes
+            .iter()
+            .filter_map(|cs| match &cs.shape {
+                // The floating bar is a 2 px track + handle (width >= 100).
+                egui::Shape::Rect(r) if r.rect.height() <= 4.0 && r.rect.width() >= 100.0 => {
+                    Some(r.rect)
+                }
+                _ => None,
+            })
+            .any(|r| (r.bottom() - body_bottom).abs() < 2.0);
+        assert!(
+            bar,
+            "horizontal scrollbar not pinned to the bottom of the row window (y={body_bottom})"
+        );
+    }
 }

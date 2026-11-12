@@ -71,11 +71,142 @@ pub enum FieldKind {
     RarityChanceRare,
     /// World artifact spawner: chance of the "epic" rarity tier (%).
     RarityChanceEpic,
+    // --- Weapons (flat stats of the three `WeaponData/*.cfg` files) ---
+    /// Weapon: seconds between two shots (fire interval).
+    FireInterval,
+    /// Weapon: seconds between the recoil impulses (recoil interval).
+    RecoilInterval,
+    /// Weapon: number of shots grouped in one burst (fire queue).
+    FireQueueCount,
+    /// Weapon: seconds of cooldown after the last shot of a queue.
+    CooldownTime,
+    /// Weapon: seconds to unload (swap out) the weapon.
+    UnloadTime,
+    /// Weapon: offset (cm) where projectiles spawn (launchers).
+    ProjectileSpawnOffset,
+    /// Weapon: seconds to reach full aim (ADS time).
+    AimingTime,
+    /// Weapon: seconds to reach the offset (stand) aiming pose.
+    OffsetAimingTime,
+    /// Weapon: seconds to lean while aiming.
+    LeanAimingTime,
+    /// Weapon: seconds to restore the lean after aiming.
+    LeanAimingRestoreTime,
+    /// Weapon: FOV multiplier while aiming (1 = unchanged).
+    AimingFOVModifier,
+    /// Weapon: FOV multiplier in the offset aiming pose.
+    OffsetAimingFOVModifier,
+    /// Weapon: movement speed multiplier while aiming.
+    AimingMovementSpeedModifier,
+    /// Weapon: hold-breath stamina drain multiplier while aiming.
+    HoldBreathDrainModifier,
+    /// Weapon: radius (cm) of the recoil pattern.
+    RecoilRadius,
+    /// Weapon: interval of the recoil pattern (texture keys).
+    RecoilPatternInterval,
+    /// Weapon: maximum recoil pitch (degrees).
+    RecoilMaxPitch,
+    /// Weapon: shot index where the recoil radius starts normalizing.
+    LinearCurveStartShot,
+    /// Weapon: shots over which the recoil radius normalizes.
+    LinearCurveShotsToNormalize,
+    /// Weapon: start key index of the camera recoil pattern (aim).
+    CameraAimRecoilPatternLoopStartKeyIndex,
+    /// Weapon: start key index of the camera recoil pattern (hip fire).
+    CameraHipRecoilPatternLoopStartKeyIndex,
+    /// Weapon: dispersion radius speed coefficient.
+    SpeedCoef,
+    /// Weapon: radius (cm) of the dispersion on the first shot.
+    FirstShotDispersionRadius,
+    /// Weapon: minimum jam chance (0..1).
+    MinJamChance,
+    /// Weapon: maximum jam chance.
+    MaxJamChance,
+    /// Weapon: weapon durability (0..1) below which jams are minimum.
+    MinJamDurabilityThreshold,
+    /// Weapon: weapon durability (0..1) above which jams are maximum.
+    MaxJamDurabilityThreshold,
+    /// Weapon: maximum number of bullets in the magazine.
+    MaxAmmo,
+    /// Weapon: number of bullets consumed per shot.
+    AmmoPerShot,
+    /// Weapon: bullets reloaded per bullet of the old magazine.
+    PerBulletReloadingAmmoCount,
+    /// Weapon: extra bullets added after a reload.
+    AdditionalBulletsAfterReloadingCount,
+    /// Weapon: reload time multiplier for a single-bullet reload.
+    SingleBulletReloadTimeMultiplier,
+    /// Weapon: loaded ammo of a dead NPC (minimum, -1 = none).
+    MinDeadNPCLoadedAmmoCount,
+    /// Weapon: loaded ammo of a dead NPC (maximum, -1 = none).
+    MaxDeadNPCLoadedAmmoCount,
+    /// Weapon: maximum heating value of the barrel.
+    MaxHeatingValue,
+    /// Weapon: heating value added per bullet.
+    PerBulletHeatingValue,
+    /// Weapon: bullets left in the last clip before the delay.
+    LastClipBulletsCount,
+    /// Weapon: total bullets left before the last-clip delay.
+    LastTotalBulletsCount,
+    /// Weapon: damage multiplier of the last-clip bullets.
+    LastClipBulletsDamageModifier,
+    /// Weapon: damage modifier of the last total bullets.
+    LastTotalBulletsDamageModifier,
+    /// Weapon settings: base damage per bullet (player / NPC).
+    BaseDamage,
+    /// Weapon settings: damage dealt to armor (player / NPC).
+    ArmorDamage,
+    /// Weapon settings: armor penetration (player / NPC).
+    ArmorPiercing,
+    /// Weapon settings: cover penetration (player).
+    CoverPiercing,
+    /// Weapon settings: base bleeding chance (0..1 fraction).
+    BaseBleeding,
+    /// Weapon settings: bleeding chance per shot (percent value, `10%`).
+    ChanceBleedingPerShot,
+    /// Weapon settings: durability damage per shot (player / NPC).
+    DurabilityDamagePerShot,
+    /// Weapon settings: minimum effective fire distance (cm).
+    EffectiveFireDistanceMin,
+    /// Weapon settings: maximum effective fire distance (cm).
+    EffectiveFireDistanceMax,
+    /// Weapon settings: distance over which the damage drops off (cm).
+    FireDistanceDropOff,
+    /// Weapon settings: damage modifier at close range.
+    MinBulletDistanceDamageModifier,
+    /// Weapon settings: armor piercing modifier at close range.
+    MinBulletDistanceArmorPiercingModifier,
+    /// Weapon settings: length of the damage drop-off zone (cm).
+    DistanceDropOffLength,
+    /// Weapon settings: vertical bullet drop height (cm).
+    BulletDropHeight,
+    /// Weapon settings: length of the bullet drop (cm).
+    BulletDropLength,
+    /// Weapon settings: dispersion radius (player / NPC).
+    DispersionRadius,
+    /// Weapon settings: NPC dispersion radius addend for zombies.
+    DispersionRadiusZombieAddend,
+    /// Weapon settings: player accuracy (0..1).
+    Accuracy,
+    /// Weapon settings: firing loudness (player, 0..1).
+    FireLoudness,
+    /// Weapon settings: displayed accuracy bar (0..1).
+    AccuracyUI,
+    /// Weapon settings: displayed rate of fire bar (0..1).
+    RateOfFireUI,
+    /// Weapon settings: displayed handling bar (0..1).
+    HandlingUI,
+    /// Weapon settings: displayed damage bar (0..1).
+    DamageUI,
+    /// Weapon settings: displayed range bar (0..1).
+    RangeUI,
+    /// Weapon settings: displayed base comfort bar (0..1).
+    BaseComfort,
 }
 
 impl FieldKind {
     /// All the types, in declaration order.
-    pub const ALL: [FieldKind; 31] = [
+    pub const ALL: [FieldKind; 96] = [
         Self::Weight,
         Self::Chance,
         Self::MinCount,
@@ -107,6 +238,71 @@ impl FieldKind {
         Self::RarityChanceUncommon,
         Self::RarityChanceRare,
         Self::RarityChanceEpic,
+        Self::FireInterval,
+        Self::RecoilInterval,
+        Self::FireQueueCount,
+        Self::CooldownTime,
+        Self::UnloadTime,
+        Self::ProjectileSpawnOffset,
+        Self::AimingTime,
+        Self::OffsetAimingTime,
+        Self::LeanAimingTime,
+        Self::LeanAimingRestoreTime,
+        Self::AimingFOVModifier,
+        Self::OffsetAimingFOVModifier,
+        Self::AimingMovementSpeedModifier,
+        Self::HoldBreathDrainModifier,
+        Self::RecoilRadius,
+        Self::RecoilPatternInterval,
+        Self::RecoilMaxPitch,
+        Self::LinearCurveStartShot,
+        Self::LinearCurveShotsToNormalize,
+        Self::CameraAimRecoilPatternLoopStartKeyIndex,
+        Self::CameraHipRecoilPatternLoopStartKeyIndex,
+        Self::SpeedCoef,
+        Self::FirstShotDispersionRadius,
+        Self::MinJamChance,
+        Self::MaxJamChance,
+        Self::MinJamDurabilityThreshold,
+        Self::MaxJamDurabilityThreshold,
+        Self::MaxAmmo,
+        Self::AmmoPerShot,
+        Self::PerBulletReloadingAmmoCount,
+        Self::AdditionalBulletsAfterReloadingCount,
+        Self::SingleBulletReloadTimeMultiplier,
+        Self::MinDeadNPCLoadedAmmoCount,
+        Self::MaxDeadNPCLoadedAmmoCount,
+        Self::MaxHeatingValue,
+        Self::PerBulletHeatingValue,
+        Self::LastClipBulletsCount,
+        Self::LastTotalBulletsCount,
+        Self::LastClipBulletsDamageModifier,
+        Self::LastTotalBulletsDamageModifier,
+        Self::BaseDamage,
+        Self::ArmorDamage,
+        Self::ArmorPiercing,
+        Self::CoverPiercing,
+        Self::BaseBleeding,
+        Self::ChanceBleedingPerShot,
+        Self::DurabilityDamagePerShot,
+        Self::EffectiveFireDistanceMin,
+        Self::EffectiveFireDistanceMax,
+        Self::FireDistanceDropOff,
+        Self::MinBulletDistanceDamageModifier,
+        Self::MinBulletDistanceArmorPiercingModifier,
+        Self::DistanceDropOffLength,
+        Self::BulletDropHeight,
+        Self::BulletDropLength,
+        Self::DispersionRadius,
+        Self::DispersionRadiusZombieAddend,
+        Self::Accuracy,
+        Self::FireLoudness,
+        Self::AccuracyUI,
+        Self::RateOfFireUI,
+        Self::HandlingUI,
+        Self::DamageUI,
+        Self::RangeUI,
+        Self::BaseComfort,
     ];
     /// Number of field types.
     pub const COUNT: usize = Self::ALL.len();
@@ -150,6 +346,77 @@ impl FieldKind {
             Self::RarityChanceUncommon => "RarityChanceUncommon",
             Self::RarityChanceRare => "RarityChanceRare",
             Self::RarityChanceEpic => "RarityChanceEpic",
+            Self::FireInterval => "FireInterval",
+            Self::RecoilInterval => "RecoilInterval",
+            Self::FireQueueCount => "FireQueueCount",
+            Self::CooldownTime => "CooldownTime",
+            Self::UnloadTime => "UnloadTime",
+            Self::ProjectileSpawnOffset => "ProjectileSpawnOffset",
+            Self::AimingTime => "AimingTime",
+            Self::OffsetAimingTime => "OffsetAimingTime",
+            Self::LeanAimingTime => "LeanAimingTime",
+            Self::LeanAimingRestoreTime => "LeanAimingRestoreTime",
+            Self::AimingFOVModifier => "AimingFOVModifier",
+            Self::OffsetAimingFOVModifier => "OffsetAimingFOVModifier",
+            Self::AimingMovementSpeedModifier => "AimingMovementSpeedModifier",
+            Self::HoldBreathDrainModifier => "HoldBreathDrainModifier",
+            Self::RecoilRadius => "RecoilRadius",
+            Self::RecoilPatternInterval => "RecoilPatternInterval",
+            Self::RecoilMaxPitch => "RecoilMaxPitch",
+            Self::LinearCurveStartShot => "LinearCurveStartShot",
+            Self::LinearCurveShotsToNormalize => "LinearCurveShotsToNormalize",
+            Self::CameraAimRecoilPatternLoopStartKeyIndex => {
+                "CameraAimRecoilPatternLoopStartKeyIndex"
+            }
+            Self::CameraHipRecoilPatternLoopStartKeyIndex => {
+                "CameraHipRecoilPatternLoopStartKeyIndex"
+            }
+            Self::SpeedCoef => "SpeedCoef",
+            Self::FirstShotDispersionRadius => "FirstShotDispersionRadius",
+            Self::MinJamChance => "MinJamChance",
+            Self::MaxJamChance => "MaxJamChance",
+            Self::MinJamDurabilityThreshold => "MinJamDurabilityThreshold",
+            Self::MaxJamDurabilityThreshold => "MaxJamDurabilityThreshold",
+            Self::MaxAmmo => "MaxAmmo",
+            Self::AmmoPerShot => "AmmoPerShot",
+            Self::PerBulletReloadingAmmoCount => "PerBulletReloadingAmmoCount",
+            Self::AdditionalBulletsAfterReloadingCount => "AdditionalBulletsAfterReloadingCount",
+            Self::SingleBulletReloadTimeMultiplier => "SingleBulletReloadTimeMultiplier",
+            Self::MinDeadNPCLoadedAmmoCount => "MinDeadNPCLoadedAmmoCount",
+            Self::MaxDeadNPCLoadedAmmoCount => "MaxDeadNPCLoadedAmmoCount",
+            Self::MaxHeatingValue => "MaxHeatingValue",
+            Self::PerBulletHeatingValue => "PerBulletHeatingValue",
+            Self::LastClipBulletsCount => "LastClipBulletsCount",
+            Self::LastTotalBulletsCount => "LastTotalBulletsCount",
+            Self::LastClipBulletsDamageModifier => "LastClipBulletsDamageModifier",
+            Self::LastTotalBulletsDamageModifier => "LastTotalBulletsDamageModifier",
+            Self::BaseDamage => "BaseDamage",
+            Self::ArmorDamage => "ArmorDamage",
+            Self::ArmorPiercing => "ArmorPiercing",
+            Self::CoverPiercing => "CoverPiercing",
+            Self::BaseBleeding => "BaseBleeding",
+            Self::ChanceBleedingPerShot => "ChanceBleedingPerShot",
+            Self::DurabilityDamagePerShot => "DurabilityDamagePerShot",
+            Self::EffectiveFireDistanceMin => "EffectiveFireDistanceMin",
+            Self::EffectiveFireDistanceMax => "EffectiveFireDistanceMax",
+            Self::FireDistanceDropOff => "FireDistanceDropOff",
+            Self::MinBulletDistanceDamageModifier => "MinBulletDistanceDamageModifier",
+            Self::MinBulletDistanceArmorPiercingModifier => {
+                "MinBulletDistanceArmorPiercingModifier"
+            }
+            Self::DistanceDropOffLength => "DistanceDropOffLength",
+            Self::BulletDropHeight => "BulletDropHeight",
+            Self::BulletDropLength => "BulletDropLength",
+            Self::DispersionRadius => "DispersionRadius",
+            Self::DispersionRadiusZombieAddend => "DispersionRadiusZombieAddend",
+            Self::Accuracy => "Accuracy",
+            Self::FireLoudness => "FireLoudness",
+            Self::AccuracyUI => "AccuracyUI",
+            Self::RateOfFireUI => "RateOfFireUI",
+            Self::HandlingUI => "HandlingUI",
+            Self::DamageUI => "DamageUI",
+            Self::RangeUI => "RangeUI",
+            Self::BaseComfort => "BaseComfort",
         }
     }
 

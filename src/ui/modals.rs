@@ -36,12 +36,12 @@ fn button_w(ui: &egui::Ui, label: &str) -> f32 {
     text_w(ui, label, &egui::TextStyle::Button) + 2.0 * ui.spacing().button_padding.x
 }
 
-/// Largeur du bouton primaire (`primary_button`, largeur minimale 44 px).
+/// Width of the primary button (`primary_button`, minimum width 44 px).
 fn primary_button_w(ui: &egui::Ui, label: &str) -> f32 {
     button_w(ui, label).max(44.0)
 }
 
-/// Largeur totale de la ligne de champs (labels + champs 52 px + espacements).
+/// Total width of a fields row (labels + 52 px inputs + spacing).
 fn fields_row_width(ui: &egui::Ui, inputs: &[String]) -> f32 {
     const FIELD_W: f32 = 52.0;
     let mut total = 0.0;
@@ -62,7 +62,7 @@ const DIFF_ICON_H: f32 = 20.0;
 fn draw_field_value(ui: &mut egui::Ui, ws: &crate::domain::Workspace, fid: FieldId) {
     let f = ws.field(fid);
     let spec = ws.spec(f.kind);
-    // Chances de spawn : affichage en pourcentage.
+    // Spawn chances: displayed in percent.
     let (orig, cur) = if spec.is_percent() {
         (
             value::display(spec, f.original()),
@@ -80,7 +80,7 @@ fn draw_field_value(ui: &mut egui::Ui, ws: &crate::domain::Workspace, fid: Field
     ui.colored_label(c::MODIFIED_FG, cur);
 }
 
-/// Dessine la modale ouverte (si `st.modal` est `Some`), puis applique les
+/// Draws the open modal (if `st.modal` is `Some`), then applies the
 /// actions accumulated during the frame (batched, after the drawing).
 pub(crate) fn draw_modals(
     ctx: &egui::Context,

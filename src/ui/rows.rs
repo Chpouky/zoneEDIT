@@ -9,15 +9,15 @@ use egui::{
 use crate::domain::{value, BlockId, EntryId, FieldId, FieldKind, Workspace};
 use crate::ui::layout::{paint_block_label, RowLayout};
 use crate::ui::metrics::{
-    CELL_BOX_H, CELL_BOX_W, CELL_FONT, CELL_RADIUS, CELL_W, CELL_W_LAST, FONT_BODY, FONT_SMALL,
-    ICON_BOX_W, ICON_H, ICON_X, LINE_FONT, LINE_X_GAP, ORPHAN_TRI_X, RANK_LABEL_GAP, ROW_H_TALL,
+    CELL_BOX_H, CELL_BOX_W, CELL_FONT, CELL_RADIUS, FONT_BODY, FONT_SMALL, HIER_INDENT, ICON_BOX_W,
+    ICON_H, ICON_X, LINE_FONT, LINE_X_GAP, ORPHAN_TRI_X, RANK_LABEL_GAP, ROW_H_TALL,
     ROW_RESET_INSET, TAG_H, TAG_TOP, TAG_W, TAG_X_GAP,
 };
 use crate::ui::ops::{commit, delegation_target, draw_row_reset};
 use crate::ui::state::{entry_rank, EditorState, Modal};
 use crate::ui::widgets::{
-    btn, cb_state_for, draw_checkbox, fit_label, row_frame, selectable_row_keys, toggle_select_all,
-    CbState,
+    btn, cb_state_for, col_at, draw_checkbox, fit_label, row_frame, selectable_row_keys,
+    toggle_select_all, CbState, Col, Cols,
 };
 use crate::ui_kit::{c, tag};
 
@@ -105,11 +105,15 @@ pub(crate) fn draw_item_row(
     st: &mut EditorState,
     id: EntryId,
     cols: &[FieldKind],
-    centers: &[f32],
+    geo: &Cols,
     row_w: f32,
     visible: &[EntryId],
     tint: Option<Color32>,
-    anomaly_child: bool,
+    // Depth in the block-entry hierarchy (0 = regular/root row, 1 = child,
+    // 2 = grandchild — weapons are 3 levels deep: TemplateWeapon → family
+    // template → gun). Every child carries ONE "↳" marker; the depth is
+    // shown by the name indent (`depth × HIER_INDENT`), not by arrows.
+    child_depth: usize,
 ) {
     // `fids` is copied before the calls that take `ws` mutably
     // (cells, reset): `e` is no longer borrowed at that point (NLL).
@@ -148,7 +152,7 @@ pub(crate) fn draw_item_row(
     // they fall back to the placeholder. World spawner rows use the icon of
     // their first listed artifact (the `icon_sid` hint) instead of the
     // spawner SID, which has no icon file.
-    if !anomaly_child {
+    if child_depth == 0 {
         let icon = icon_for(e.icon_key());
         let scale = (ICON_H / icon.size.y).min(ICON_BOX_W / icon.size.x);
         let icon_size = icon.size * scale;
@@ -168,15 +172,10 @@ pub(crate) fn draw_item_row(
     // name — truncated so it never slides under the first value column
     // (e.g. long anomaly SIDs on the 11-column anomalies page).
     let name_x = rl.name_pos(rect).x;
-    let name_max_w = match centers.first().copied() {
-        Some(c0) => {
-            let cell = if centers.len() == 1 {
-                CELL_W_LAST
-            } else {
-                CELL_W
-            };
-            c0 - cell / 2.0 - name_x - 8.0
-        }
+    // The `geo` centers are body-local: the row's left edge carries the
+    // scroll offsets (the name zone scrolls with the row, not under it).
+    let name_max_w = match geo.cols.first() {
+        Some(c0) => rect.left() + c0.center - c0.width / 2.0 - name_x - 8.0,
         None => f32::INFINITY,
     };
     // name
@@ -195,24 +194,32 @@ pub(crate) fn draw_item_row(
     } else {
         let painter = ui.painter_at(rect);
         let font = FontId::proportional(FONT_BODY);
-        // Anomaly child: a "↳" prefix glued to the name, exactly like a
-        // delegation row (the arrow marks the child; the tint groups it with
-        // its parent). No icon, no separate arrow.
-        let name = if anomaly_child {
-            fit_label(&painter, &format!("↳ {}", e.sid), &font, name_max_w)
+        // Hierarchy child: ONE "↳" marker (always, whatever the depth) and
+        // the name shifted right by `child_depth × HIER_INDENT` — the
+        // offset, not a stack of arrows, encodes the depth (same model as a
+        // delegation row: arrow + tint group the child with its parent).
+        // No icon, no separate arrow. The checkbox and the value cells stay
+        // anchored: only the name zone moves.
+        let name_x = rl.name_pos(rect).x + child_depth as f32 * HIER_INDENT;
+        let name = if child_depth > 0 {
+            fit_label(
+                &painter,
+                &format!("↳ {}", e.sid),
+                &font,
+                name_max_w - child_depth as f32 * HIER_INDENT,
+            )
         } else {
             fit_label(&painter, &e.sid, &font, name_max_w)
         };
         let name_w = painter
-            .text(rl.name_pos(rect), Align2::LEFT_CENTER, name, font, c::TEXT)
+            .text(pos2(name_x, cy), Align2::LEFT_CENTER, name, font, c::TEXT)
             .width();
         // Small rank label after the name, to distinguish the tables
         // of the same block (Newbie / Experienced / …). Always displayed,
         // even when a specific rank is filtered.
         if let Some(rank) = entry_rank(&e.ctx) {
-            let nx = rl.name_pos(rect).x;
             painter.text(
-                pos2(nx + name_w + RANK_LABEL_GAP, cy),
+                pos2(name_x + name_w + RANK_LABEL_GAP, cy),
                 Align2::LEFT_CENTER,
                 rank,
                 FontId::proportional(FONT_SMALL),
@@ -243,7 +250,7 @@ pub(crate) fn draw_item_row(
     // value cells
     for (ci, col) in cols.iter().enumerate() {
         if let Some(&f) = fids.iter().find(|&&f| ws.field(f).kind == *col) {
-            draw_cell(ui, ws, st, f, centers[ci], cy);
+            draw_cell(ui, ws, st, f, &col_at(&geo.cols[ci], rect.left()), cy);
         }
     }
     // Small circular row-reset button, visible only if one of the row's
@@ -379,7 +386,7 @@ pub(crate) fn draw_cell(
     ws: &mut Workspace,
     st: &mut EditorState,
     fid: FieldId,
-    center_x: f32,
+    col: &Col,
     center_y: f32,
 ) {
     let (start, invalid, is_dirty) = {
@@ -390,7 +397,9 @@ pub(crate) fn draw_cell(
         let start = value::display(spec, &raw);
         (start, !f.is_valid(), f.is_dirty())
     };
-    let rect = Rect::from_center_size(pos2(center_x, center_y), vec2(CELL_BOX_W, CELL_BOX_H));
+    // The box is as wide as the cell of the column, with a small margin.
+    let box_w = CELL_BOX_W.min(col.width - 8.0);
+    let rect = Rect::from_center_size(pos2(col.center, center_y), vec2(box_w, CELL_BOX_H));
     if st.editing.cell == Some(fid) {
         let mut text = st.editing.text.clone();
         let mut ch = ui.new_child(
@@ -423,7 +432,7 @@ pub(crate) fn draw_cell(
             egui::TextEdit::singleline(&mut text)
                 .id(id)
                 .font(egui::TextStyle::Monospace)
-                .desired_width(CELL_BOX_W)
+                .desired_width(box_w)
                 .frame(false),
         );
         st.editing.text = text;
@@ -451,8 +460,7 @@ pub(crate) fn draw_cell(
         };
         let mut ch = ui.new_child(egui::UiBuilder::new().max_rect(rect));
         {
-            let (rect2, resp) =
-                ch.allocate_exact_size(vec2(CELL_BOX_W, CELL_BOX_H), Sense::click());
+            let (rect2, resp) = ch.allocate_exact_size(vec2(box_w, CELL_BOX_H), Sense::click());
             if resp.clicked() {
                 st.editing.cell = Some(fid);
                 st.editing.gen = st.editing.gen.wrapping_add(1);

@@ -42,6 +42,12 @@ pub struct FileSpec {
     pub name: String,
     /// Role, referenced by the classification rules.
     pub role: String,
+    /// Entries of this file may belong to several categories: all the
+    /// matching rules apply (the `WeaponData` files — one weapon shows in
+    /// its "fire", "aiming", "recoil"… rows). Default: the first matching
+    /// rule wins (one category per entry).
+    #[serde(default)]
+    pub multi_category: bool,
 }
 
 /// cfg format key names used by the entry extraction.
@@ -132,9 +138,9 @@ pub enum FieldScope {
 pub struct FieldSpec {
     /// Type of the field.
     pub kind: FieldKind,
-    /// Short label (column header).
+    /// Short label (field modal).
     pub short: String,
-    /// Long label (tooltip, errors).
+    /// Long label (column header of the table).
     pub long: String,
     /// Value type (integer or float).
     #[serde(rename = "type")]

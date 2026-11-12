@@ -1,4 +1,4 @@
-//! Tableau principal : colonnes, lignes de blocs/rangs/groupe/items, cellules.
+//! Main table: columns, block/rank/group/item rows, cells.
 
 use std::collections::HashMap;
 
@@ -12,7 +12,7 @@ use crate::ui::ops::draw_row_reset;
 use crate::ui::rows::{draw_cell, draw_generator_row, draw_item_row, draw_orphan_row};
 use crate::ui::state::{Derived, EditorState};
 use crate::ui::widgets::{
-    cb_state_for, draw_checkbox, row_frame, selectable_row_keys, toggle_select_all,
+    cb_state_for, col_at, draw_checkbox, row_frame, selectable_row_keys, toggle_select_all, Cols,
 };
 use crate::ui_kit::c;
 
@@ -34,11 +34,15 @@ pub(crate) fn is_block_entry_block(ws: &Workspace, bid: BlockId) -> bool {
     roles.iter().any(|r| r == role)
 }
 
-/// Inheritance of the anomaly blocks ("block = entry" files): for each child
-/// block whose `refkey` names another block of the same file, map
+/// Inheritance of the "block = entry" files (anomalies, weapons): for each
+/// child block whose `refkey` names another block of the same file, map
 /// child → parent and parent → [children]. Returns `(parent_of, children_of)`.
 /// Only children whose parent is in the same file are tracked (the real
 /// anomaly prototypes all live in a single file).
+///
+/// Depth: the anomaly data is at most 2 levels (base → variant), but the
+/// weapon GeneralSetup goes 3 deep (TemplateWeapon → family template →
+/// gun) — `render_table` walks this map recursively, at any depth.
 pub(crate) fn anomaly_hierarchy(
     ws: &Workspace,
 ) -> (HashMap<BlockId, BlockId>, HashMap<BlockId, Vec<BlockId>>) {
@@ -76,15 +80,75 @@ pub(crate) fn anomaly_hierarchy(
     (parent, children)
 }
 
+/// Draws a block-entry row and, recursively, its visible children (see
+/// `anomaly_hierarchy`). Every child carries ONE "↳" marker, indented by
+/// its depth (`depth × HIER_INDENT`, see `draw_item_row`). Children are
+/// always shown (no fold); the whole subtree shares the tint assigned by
+/// `compute_derived`.
+#[allow(clippy::too_many_arguments)] // same profile as the other draw_*_row
+fn draw_block_entry_tree(
+    ui: &mut Ui,
+    ws: &mut Workspace,
+    st: &mut EditorState,
+    derived: &Derived,
+    id: EntryId,
+    cols: &[FieldKind],
+    geo: &Cols,
+    row_w: f32,
+    children: &HashMap<BlockId, Vec<BlockId>>,
+    visible: &HashMap<BlockId, EntryId>,
+    depth: usize,
+) {
+    let bid = ws.entry(id).block;
+    let row_tint = derived
+        .delegation_tint
+        .get(&id)
+        .copied()
+        .or_else(|| derived.block_tint.get(&bid).copied());
+    draw_item_row(
+        ui,
+        ws,
+        st,
+        id,
+        cols,
+        geo,
+        row_w,
+        &derived.visible_idx,
+        row_tint,
+        depth,
+    );
+    let kids: &[BlockId] = children.get(&bid).map_or(&[], Vec::as_slice);
+    for &cbid in kids {
+        if let Some(&cid) = visible.get(&cbid) {
+            draw_block_entry_tree(
+                ui,
+                ws,
+                st,
+                derived,
+                cid,
+                cols,
+                geo,
+                row_w,
+                children,
+                visible,
+                depth + 1,
+            );
+        }
+    }
+}
+
 pub(crate) fn render_table(
     ui: &mut Ui,
     ws: &mut Workspace,
     st: &mut EditorState,
     derived: &Derived,
     cols: &[FieldKind],
-    centers: &[f32],
+    geo: &Cols,
 ) {
-    let row_w = ui.available_width();
+    // Inside the scroll area, `available_width` is the viewport:
+    // the rows are as wide as the content (they can exceed the viewport,
+    // which makes the table scroll horizontally).
+    let row_w = ui.available_width().max(geo.content_w);
     let mut last_block: Option<BlockId> = None;
     let mut last_group: Option<FieldId> = None;
     let mut last_group_label: Option<String> = None;
@@ -135,49 +199,33 @@ pub(crate) fn render_table(
             continue;
         }
 
-        // Anomaly hierarchy: a child is drawn under its parent (handled there)
-        // and is skipped here. A root anomaly is drawn as a flat item row,
-        // immediately followed by its visible children (always shown — no
-        // fold). The parent and its children share one tint (color-coded).
+        // Block-entry hierarchy (anomalies, weapons): a child is drawn under
+        // its parent (handled there) and is skipped here — UNLESS the parent
+        // is not visible (e.g. the search only matches the child): in that
+        // case the child is drawn here, at the top level, or it would vanish.
+        // A root is drawn as a flat item row, immediately followed by its
+        // visible children, recursively (always shown — no fold). The whole
+        // subtree shares one tint (color-coded).
         if be {
-            if anom_parent.contains_key(&bid) {
+            let parent_visible = anom_parent
+                .get(&bid)
+                .is_some_and(|&pid| visible_anom.contains_key(&pid));
+            if parent_visible {
                 continue;
             }
-            let row_tint = derived
-                .delegation_tint
-                .get(&id)
-                .copied()
-                .or_else(|| derived.block_tint.get(&bid).copied());
-            draw_item_row(
+            draw_block_entry_tree(
                 ui,
                 ws,
                 st,
+                derived,
                 id,
                 cols,
-                centers,
+                geo,
                 row_w,
-                &derived.visible_idx,
-                row_tint,
-                false,
+                &anom_children,
+                &visible_anom,
+                0,
             );
-            let children: &[BlockId] = anom_children.get(&bid).map_or(&[], Vec::as_slice);
-            for &cbid in children {
-                if let Some(&cid) = visible_anom.get(&cbid) {
-                    let ctint = derived.block_tint.get(&cbid).copied();
-                    draw_item_row(
-                        ui,
-                        ws,
-                        st,
-                        cid,
-                        cols,
-                        centers,
-                        row_w,
-                        &derived.visible_idx,
-                        ctint,
-                        true,
-                    );
-                }
-            }
             continue;
         }
 
@@ -195,7 +243,7 @@ pub(crate) fn render_table(
             st,
             id,
             cols,
-            centers,
+            geo,
             row_w,
             block_entries,
             &mut last_group,
@@ -213,11 +261,11 @@ pub(crate) fn render_table(
             st,
             id,
             cols,
-            centers,
+            geo,
             row_w,
             &derived.visible_idx,
             row_tint,
-            false,
+            0,
         );
     }
 
@@ -229,8 +277,7 @@ pub(crate) fn render_table(
         }
         let exists = o.entries.iter().any(|&id| {
             let e = ws.entry(id);
-            ws.category(id) == Some(st.view.category)
-                && st.view.file_filter.is_none_or(|f| f == e.file)
+            ws.in_category(id, st.view.category) && st.view.file_filter.is_none_or(|f| f == e.file)
         });
         if !exists {
             continue;
@@ -258,7 +305,7 @@ pub(crate) fn draw_group_rows(
     st: &mut EditorState,
     id: EntryId,
     cols: &[FieldKind],
-    centers: &[f32],
+    geo: &Cols,
     row_w: f32,
     block_entries: &[EntryId],
     last_group: &mut Option<FieldId>,
@@ -367,7 +414,14 @@ pub(crate) fn draw_group_rows(
             }
             for (ci, col) in cols.iter().enumerate() {
                 if let Some(&gk) = gkeys.iter().find(|&&k| ws.field(k).kind == *col) {
-                    draw_cell(ui, ws, st, gk, centers[ci], rect.center().y);
+                    draw_cell(
+                        ui,
+                        ws,
+                        st,
+                        gk,
+                        &col_at(&geo.cols[ci], rect.left()),
+                        rect.center().y,
+                    );
                 }
             }
             // Reset button of the group line (visible if a

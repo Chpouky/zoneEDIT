@@ -32,18 +32,29 @@ pub mod c {
     pub const DANGER_FG: Color32 = Color32::from_rgb(0xEF, 0x7F, 0x88);
     pub const SUCCESS_FG: Color32 = Color32::from_rgb(0x8F, 0xC9, 0x6C);
     pub const DANGER_BG: Color32 = Color32::from_rgb(0x3A, 0x2B, 0x2B);
-    /// Highlight tints of the delegations (delegation line + source block
-    /// + target block share the same tint). Deliberately very light
-    ///   (alpha ≈ 10 %): they must not steal the show from the data.
-    pub const DELEG_TINTS: [Color32; 6] = [
-        // Pre-multiplied values (α = 26/255 ≈ 10 %): blue, green, purple,
-        // teal, pink, yellow — e.g. blue = 96,148,224,26 unmultiplied.
-        Color32::from_rgba_premultiplied(10, 15, 23, 26), // bleu
-        Color32::from_rgba_premultiplied(11, 20, 14, 26), // vert
-        Color32::from_rgba_premultiplied(18, 14, 23, 26), // violet
+    /// Highlight tints, shared by two systems: delegation rows (line +
+    /// source block + target block) and block-entry hierarchy families
+    /// (family template + all its descendants). Deliberately very light
+    /// (alpha ≈ 10 %): they must not steal the show from the data.
+    /// 13 slots: the real weapon GeneralSetup has 12 family templates
+    /// (+ the root template), so every family gets a distinct tint.
+    pub const GROUP_TINTS: [Color32; 13] = [
+        // Pre-multiplied values (α = 26/255 ≈ 10 %) — e.g. blue =
+        // 96,148,224,26 unmultiplied. The first six slots are stable:
+        // delegation rows were built against them.
+        Color32::from_rgba_premultiplied(10, 15, 23, 26), // blue
+        Color32::from_rgba_premultiplied(11, 20, 14, 26), // green
+        Color32::from_rgba_premultiplied(18, 14, 23, 26), // purple
         Color32::from_rgba_premultiplied(10, 20, 20, 26), // teal
-        Color32::from_rgba_premultiplied(23, 15, 19, 26), // rose
-        Color32::from_rgba_premultiplied(23, 20, 12, 26), // jaune
+        Color32::from_rgba_premultiplied(23, 15, 19, 26), // pink
+        Color32::from_rgba_premultiplied(23, 20, 12, 26), // yellow
+        Color32::from_rgba_premultiplied(23, 16, 8, 26),  // orange
+        Color32::from_rgba_premultiplied(23, 10, 10, 26), // red
+        Color32::from_rgba_premultiplied(8, 21, 24, 26),  // cyan
+        Color32::from_rgba_premultiplied(21, 11, 23, 26), // magenta
+        Color32::from_rgba_premultiplied(15, 23, 9, 26),  // lime
+        Color32::from_rgba_premultiplied(9, 19, 26, 26),  // sky
+        Color32::from_rgba_premultiplied(19, 19, 22, 26), // grey
     ];
 }
 

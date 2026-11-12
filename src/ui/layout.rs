@@ -81,7 +81,7 @@ impl FoldTri {
 /// Left-side layout of a table row: its height + the x positions (offsets
 /// from the left edge of the row) of the checkbox, the fold triangle, the
 /// icon and the name. The value cells are NOT part of the layout: they are
-/// right-anchored columns (`widgets::col_centers`), shared by every row.
+/// right-anchored columns (`widgets::col_layout`), shared by every row.
 #[derive(Clone, PartialEq)]
 pub(crate) struct RowLayout {
     /// Height of the row.

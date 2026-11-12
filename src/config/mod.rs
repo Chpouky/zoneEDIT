@@ -377,8 +377,8 @@ mod tests {
     #[test]
     fn default_config_is_valid() {
         let c = Config::default_arc();
-        assert_eq!(c.files.len(), 6);
-        assert_eq!(c.categories.len(), 18);
+        assert_eq!(c.files.len(), 9);
+        assert_eq!(c.categories.len(), 27);
         assert_eq!(
             c.group_kinds().collect::<Vec<_>>(),
             vec![
@@ -406,7 +406,7 @@ mod tests {
             "overridden key replaced"
         );
         assert_eq!(c.ranks, vec!["Newbie", "Master"]);
-        assert_eq!(c.categories.len(), 18, "non-overridden array kept");
+        assert_eq!(c.categories.len(), 27, "non-overridden array kept");
     }
 
     #[test]

@@ -70,7 +70,7 @@ fn num(s: &str) -> f64 {
 #[test]
 fn load_sanity() {
     let ws = load_root();
-    assert_eq!(ws.files().len(), 6, "6 fichiers attendus");
+    assert_eq!(ws.files().len(), 9, "9 fichiers attendus");
     let n = ws.entry_ids().count();
     assert!(n > 200, "trop peu d'entrées : {n}");
     let errs = ws.validation_errors();
@@ -96,7 +96,7 @@ fn real_anomaly_roundtrip() {
     let anomalies = ws.config().category_id("Anomalies").expect("catégorie");
     let n = ws
         .entry_ids()
-        .filter(|&id| ws.category(id) == Some(anomalies))
+        .filter(|&id| ws.in_category(id, anomalies))
         .count();
     assert_eq!(n, 26, "26 blocs attendus dans le fichier vanilla");
 
@@ -129,10 +129,7 @@ fn real_artifact_spawner_roundtrip() {
         .config()
         .category_id("ArtifactSpawner")
         .expect("catégorie");
-    let n = ws
-        .entry_ids()
-        .filter(|&id| ws.category(id) == Some(cat))
-        .count();
+    let n = ws.entry_ids().filter(|&id| ws.in_category(id, cat)).count();
     assert_eq!(n, 364, "une entrée par bloc × rang");
 
     // Valeurs vanilla connues (ChunkMeatArtifactSpawner, Newbie).
@@ -371,19 +368,19 @@ fn new_categories() {
             ws.block(ws.entry(id).block).name == "GeneralNPC_Duty_Stormtrooper_ItemGenerator"
         })
         .expect("bloc GeneralNPC_Duty_Stormtrooper_ItemGenerator absent");
-    assert_eq!(ws.category(npc_weapon), Some(npc));
+    assert!(ws.in_category(npc_weapon, npc));
     let npc_armor = ws
         .entry_ids()
         .find(|&id| ws.block(ws.entry(id).block).name == "GeneralNPC_Duty_Armor")
         .expect("bloc GeneralNPC_Duty_Armor absent");
-    assert_eq!(ws.category(npc_armor), Some(npc));
+    assert!(ws.in_category(npc_armor, npc));
     assert!(
         !ws.entry_ids().any(|id| {
             let e = ws.entry(id);
             ws.block(e.block).name.starts_with("GeneralNPC")
                 && e.file == 1
                 && e.is_delegation()
-                && ws.category(id) == Some(npc)
+                && ws.in_category(id, npc)
         }),
         "délégations de blocs NPC exposées à tort"
     );
@@ -398,7 +395,7 @@ fn new_categories() {
                 e.file == 0 && e.sid == item
             })
             .unwrap_or_else(|| panic!("item introuvable dans le fichier 0 : {item}"));
-        ws.category(id)
+        ws.categories_of(id).first().copied()
     };
     assert_eq!(by_item("Sausage"), cfg.category_id("Food"));
     assert_eq!(by_item("GrenadeF1"), cfg.category_id("Grenade"));
@@ -413,7 +410,7 @@ fn new_categories() {
     assert!(
         ws.entry_ids()
             .filter(|&id| ws.entry(id).sid == "Bear")
-            .all(|id| ws.category(id) == Some(detectors)),
+            .all(|id| ws.in_category(id, detectors)),
         "Bear doit être classé Detectors partout où il apparaît"
     );
     assert_eq!(
@@ -442,7 +439,7 @@ fn load_fixtures() -> Workspace {
 #[test]
 fn fixture_roundtrip_is_byte_exact() {
     let ws = load_fixtures();
-    assert_eq!(ws.files().len(), 6, "6 fichiers attendus dans les fixtures");
+    assert_eq!(ws.files().len(), 9, "9 fichiers attendus dans les fixtures");
     for (i, f) in ws.files().iter().enumerate() {
         let rendered = export::render(&ws, i).unwrap_or_else(|e| panic!("{} : {e}", f.name()));
         let raw = std::fs::read(&f.path).unwrap_or_else(|e| panic!("{} : {e}", f.name()));
@@ -468,7 +465,7 @@ fn fixture_anomalies_block_as_entry() {
     // Une entrée par bloc de la fixture (6 blocs).
     let ids: Vec<_> = ws
         .entry_ids()
-        .filter(|&id| ws.category(id) == Some(anomalies))
+        .filter(|&id| ws.in_category(id, anomalies))
         .collect();
     assert_eq!(ids.len(), 6, "un bloc = une entrée anomalie");
 
@@ -518,8 +515,7 @@ fn fixture_anomalies_block_as_entry() {
         .expect("catégorie ArtifactSpawner");
     for id in ws.entry_ids() {
         let e = ws.entry(id);
-        let cat = ws.category(id);
-        if cat != Some(anomalies) && cat != Some(spawners) {
+        if !ws.in_category(id, anomalies) && !ws.in_category(id, spawners) {
             assert!(
                 ws.own_field(e, FieldKind::Radius).is_none(),
                 "Radius hors anomalies : {} / {}",
@@ -756,7 +752,7 @@ fn fixture_parser_structure() {
 fn fixture_classify() {
     let ws = load_fixtures();
     let cfg = ws.config();
-    let c = |block: &str, item: &str| ws.category(find_id(&ws, block, item));
+    let c = |block: &str, item: &str| ws.categories_of(find_id(&ws, block, item)).first().copied();
     assert_eq!(
         c("DestructibleStash_Medkit_Newbie", "Medkit"),
         cfg.category_id("MedCrate")
@@ -1271,4 +1267,151 @@ fn delete_preset_removes_file() {
     // Deuxième suppression : plus là.
     assert!(presets::delete(&root, &cfg, "My preset").is_err());
     let _ = std::fs::remove_dir_all(&root);
+}
+
+// ---------------------------------------------------------------------------
+// Weapon stats (three `WeaponData/*.cfg` files, `multi_category`).
+// ---------------------------------------------------------------------------
+
+/// Fixtures : the weapon files parse (CRLF, 3- and 4-space indents, list
+/// scopes) and each weapon block belongs to ALL the stat families of its
+/// file (the `multi_category` model).
+#[test]
+fn fixture_weapons_multi_category() {
+    let ws = load_fixtures();
+    let cfg = ws.config();
+    let cats = [
+        "WeaponFire",
+        "WeaponAiming",
+        "WeaponRecoil",
+        "WeaponJams",
+        "WeaponReload",
+        "WeaponHeating",
+        "PlayerWeaponDamage",
+        "PlayerWeaponDisplay",
+        "NpcWeaponCombat",
+    ]
+    .map(|id| {
+        cfg.category_id(id)
+            .unwrap_or_else(|| panic!("category {id}"))
+    });
+    let (fire, aiming, recoil, jams, reload, heating, pld, pld_ui, npc) = (
+        cats[0], cats[1], cats[2], cats[3], cats[4], cats[5], cats[6], cats[7], cats[8],
+    );
+
+    // GeneralSetup: all three blocks (root template, family template, gun —
+    // 3-level inheritance, like the real file) belong to the 6
+    // `weapon_general` families.
+    for block in ["TemplateWeapon", "TemplateTestPistol", "GunTestPM_HG"] {
+        let id = find_id(&ws, block, block);
+        for &c in [&fire, &aiming, &recoil, &jams, &reload, &heating] {
+            assert!(
+                ws.in_category(id, c),
+                "{block} must belong to category {c:?}"
+            );
+        }
+    }
+
+    // Flat + transparent-scope fields of the weapon block.
+    let gun = find(&ws, "GunTestPM_HG", "GunTestPM_HG");
+    assert_eq!(num(val(&ws, gun, FieldKind::FireInterval)), 0.09);
+    assert_eq!(num(val(&ws, gun, FieldKind::AimingTime)), 0.25);
+    assert_eq!(
+        num(val(&ws, gun, FieldKind::RecoilRadius)),
+        300.0,
+        "RecoilRadius inside the transparent RecoilParams scope"
+    );
+    assert_eq!(num(val(&ws, gun, FieldKind::FireQueueCount)), 1.0);
+
+    // Player: the two blocks belong to the 2 `weapon_player` families.
+    for block in ["TemplatePistol", "GunTestPM_HG_Player"] {
+        let id = find_id(&ws, block, block);
+        assert!(ws.in_category(id, pld), "{block} in PlayerWeaponDamage");
+        assert!(ws.in_category(id, pld_ui), "{block} in PlayerWeaponDisplay");
+    }
+    let player = find(&ws, "GunTestPM_HG_Player", "GunTestPM_HG_Player");
+    assert_eq!(num(val(&ws, player, FieldKind::BaseDamage)), 12.5);
+    assert_eq!(
+        num(val(&ws, player, FieldKind::ChanceBleedingPerShot)),
+        10.0,
+        "percent suffix value"
+    );
+
+    // NPC (4-space indent): one block in the `weapon_npc` family.
+    let npc_id = find_id(&ws, "GunTestPM_HG_NPC", "GunTestPM_HG_NPC");
+    assert!(ws.in_category(npc_id, npc));
+    let np = ws.entry(npc_id);
+    assert_eq!(num(val(&ws, np, FieldKind::BaseBleeding)), 20.0);
+    assert_eq!(
+        num(val(&ws, np, FieldKind::DispersionRadiusZombieAddend)),
+        30.0
+    );
+
+    // Weapon entries are not leaked into the item categories (and vice
+    // versa): one entry = its file's families only.
+    let med = cfg.category_id("MedCrate").unwrap();
+    assert!(!ws.in_category(npc_id, med));
+}
+
+/// Real data : the three weapon files load, parse byte-exact and expose the
+/// expected blocks (92 / 66 / 75 blocks vanilla).
+#[test]
+fn real_weapons_roundtrip() {
+    let ws = load_root();
+    for path in [
+        "GameData/WeaponData/WeaponGeneralSetupPrototypes.cfg",
+        "GameData/WeaponData/CharacterWeaponSettingsPrototypes/PlayerWeaponSettingsPrototypes.cfg",
+        "GameData/WeaponData/CharacterWeaponSettingsPrototypes/NPCWeaponSettingsPrototypes.cfg",
+    ] {
+        let fi = ws
+            .files()
+            .iter()
+            .position(|f| f.spec.path == path)
+            .unwrap_or_else(|| panic!("fichier absent : {path}"));
+        let rendered = export::render(&ws, fi).expect("rendu du fichier");
+        let raw = std::fs::read_to_string(ws.files()[fi].path.clone()).expect("lecture");
+        assert_eq!(rendered, raw, "aller-retour non byte-exact : {path}");
+    }
+
+    let cfg = ws.config();
+    let n = |id: &str| {
+        ws.config()
+            .category_id(id)
+            .unwrap_or_else(|| panic!("catégorie {id}"))
+    };
+    let fire = n("WeaponFire");
+    let pld = n("PlayerWeaponDamage");
+    let npc = n("NpcWeaponCombat");
+    assert_eq!(
+        ws.entry_ids()
+            .filter(|&id| ws.in_category(id, fire))
+            .count(),
+        92,
+        "92 blocs WeaponGeneralSetup"
+    );
+    assert_eq!(
+        ws.entry_ids().filter(|&id| ws.in_category(id, pld)).count(),
+        66,
+        "66 blocs PlayerWeaponSettings"
+    );
+    assert_eq!(
+        ws.entry_ids().filter(|&id| ws.in_category(id, npc)).count(),
+        75,
+        "75 blocs NPCWeaponSettings"
+    );
+
+    // Vanilla values (GunPM_HG / GunPM_HG_Player / GunPM_HG_NPC).
+    let gun = find(&ws, "GunPM_HG", "GunPM_HG");
+    assert_eq!(num(val(&ws, gun, FieldKind::FireInterval)), 0.09);
+    assert_eq!(num(val(&ws, gun, FieldKind::RecoilRadius)), 300.0);
+    let player = find(&ws, "GunPM_HG_Player", "GunPM_HG_Player");
+    assert_eq!(num(val(&ws, player, FieldKind::BaseDamage)), 30.0);
+    assert_eq!(
+        num(val(&ws, player, FieldKind::ChanceBleedingPerShot)),
+        10.0
+    );
+    assert_eq!(num(val(&ws, player, FieldKind::AccuracyUI)), 0.4);
+    let np = find(&ws, "GunPM_HG_NPC", "GunPM_HG_NPC");
+    assert_eq!(num(val(&ws, np, FieldKind::BaseDamage)), 8.0);
+    let _ = cfg;
 }

@@ -9,9 +9,10 @@ use std::collections::HashSet;
 
 use crate::domain::{EntryId, FieldId, Workspace};
 use crate::ui::metrics::{
-    BTN_MIN_W, CB_BOX, CB_HIT, CELL_GAP, CELL_W, CELL_W_LAST, COLS_RIGHT_MARGIN, CTRL_H,
-    CTRL_PAD_X, DROP_PAD, FONT_BODY, FONT_BUTTON, FONT_SMALL, SEARCH_CLEAR_BTN, SEARCH_CLEAR_GAP,
-    SEARCH_CLEAR_X_ARM, SEARCH_CLEAR_X_STROKE, SEARCH_H, SEARCH_PAD_X,
+    BTN_MIN_W, CB_BOX, CB_HIT, CELL_GAP, COLS_RIGHT_MARGIN, COL_PAD_X, COL_W_MIN, CTRL_H,
+    CTRL_PAD_X, DROP_PAD, FONT_BODY, FONT_BUTTON, FONT_SMALL, ITEM_NAME_X, NAME_MIN_W,
+    SEARCH_CLEAR_BTN, SEARCH_CLEAR_GAP, SEARCH_CLEAR_X_ARM, SEARCH_CLEAR_X_STROKE, SEARCH_H,
+    SEARCH_PAD_X,
 };
 use crate::ui::state::EditorState;
 use crate::ui_kit::c;
@@ -335,23 +336,82 @@ pub(crate) fn menu_note(ui: &mut Ui, label: &str) {
     );
 }
 
-/// X centers of the value columns, anchored to the right: margin 16,
-/// right column 70, the others 80, step 8.
-pub(crate) fn col_centers(right: f32, n: usize) -> Vec<f32> {
-    let mut centers = vec![0.0; n];
-    let mut x = right - COLS_RIGHT_MARGIN;
+/// One value column of the table.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) struct Col {
+    /// Center x of the column (the value box is centered on it).
+    pub center: f32,
+    /// Width of the column: fits its header label, at least `COL_W_MIN`.
+    pub width: f32,
+}
+
+/// Geometry of the value zone: one column per editable field of the current
+/// category, right-anchored on the right edge of the table content. The
+/// content is at least as wide as the viewport; when the name zone or the
+/// columns do not fit, it is wider and the table scrolls horizontally.
+pub(crate) struct Cols {
+    /// One column per field, in the order of `category.columns`.
+    pub cols: Vec<Col>,
+    /// Width of the table content (max of the viewport and of the width
+    /// needed by the name zone + columns + right margin).
+    pub content_w: f32,
+}
+
+/// Builds the per-column layout. Each column is as wide as its header
+/// `labels[i]` (measured in `font`) plus padding, at least `COL_W_MIN`.
+/// `viewport_w` describes the visible body of the table; the content grows
+/// beyond the viewport when needed (horizontal scrolling).
+///
+/// The column centers are **body-local** (0 = left edge of the body) so
+/// they scroll with the content: rows add their own left edge (see
+/// `col_at`), the sticky header adds its left edge minus the horizontal
+/// scroll offset.
+pub(crate) fn col_layout(
+    painter: &Painter,
+    viewport_w: f32,
+    labels: &[String],
+    font: &FontId,
+) -> Cols {
+    let widths: Vec<f32> = labels
+        .iter()
+        .map(|label| {
+            let w = painter
+                .layout_no_wrap(label.clone(), font.clone(), Color32::WHITE)
+                .size()
+                .x;
+            (w + 2.0 * COL_PAD_X).max(COL_W_MIN)
+        })
+        .collect();
+    let n = widths.len();
+    let span: f32 = widths.iter().sum::<f32>() + CELL_GAP * n.saturating_sub(1) as f32;
+    // Left (name) zone + columns + right margin (row reset button).
+    let needed = ITEM_NAME_X + NAME_MIN_W + span + COLS_RIGHT_MARGIN;
+    let content_w = viewport_w.max(needed);
+    let mut cols = Vec::with_capacity(n);
+    let mut x = content_w - COLS_RIGHT_MARGIN;
     for i in (0..n).rev() {
-        let w = if i == n - 1 { CELL_W_LAST } else { CELL_W };
-        centers[i] = x - w / 2.0;
-        x -= w + CELL_GAP;
+        cols.push(Col {
+            center: x - widths[i] / 2.0,
+            width: widths[i],
+        });
+        x -= widths[i] + CELL_GAP;
     }
-    centers
+    cols.reverse();
+    Cols { cols, content_w }
+}
+
+/// Body-local column → row coordinates: the row `rect` already carries the
+/// scroll offsets, the `Cols` centers are relative to the body.
+pub(crate) fn col_at(col: &Col, row_left: f32) -> Col {
+    Col {
+        center: row_left + col.center,
+        width: col.width,
+    }
 }
 
 /// Truncates `text` with an ellipsis so its rendered width fits `max_w`.
-/// Header labels are centered on ~70 px columns: a label wider than its
-/// cell would bleed into its neighbours (e.g. "PRIORITY RADIUS" on the
-/// anomalies page).
+/// Used for entry names in the name zone, which has a bounded width; value
+/// column labels are never truncated (the columns are sized to fit them).
 pub(crate) fn fit_label(painter: &Painter, text: &str, font: &FontId, max_w: f32) -> String {
     if painter
         .layout_no_wrap(text.to_string(), font.clone(), Color32::WHITE)

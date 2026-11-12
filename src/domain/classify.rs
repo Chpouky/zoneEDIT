@@ -1,29 +1,41 @@
-//! Classification of an entry into a category, according to the
-//! declarative rules of the configuration (first matching rule).
+//! Classification of an entry into its categories, according to the
+//! declarative rules of the configuration.
+//!
+//! Default: the first matching rule wins (one category per entry). Files
+//! flagged `multi_category` collect all the matching rules: one entry may
+//! belong to several categories (weapon stats — one weapon shows in its
+//! "fire", "aiming", "recoil"… rows).
 
-use crate::config::{CategoryId, Config, RuleInput};
+use crate::config::{CategoryId, Config, FileSpec, RuleInput};
 
 use super::entry::Entry;
 use super::field::Field;
 
-/// Category of an entry; `None` = outside the scope of the application.
+/// Categories of an entry (empty = outside the scope of the application).
 pub fn classify(
     cfg: &Config,
-    file_role: &str,
+    file: &FileSpec,
     block_name: &str,
     entry: &Entry,
     fields: &[Field],
-) -> Option<CategoryId> {
+) -> Vec<CategoryId> {
     let has_field = |k| entry.fields.iter().any(|f| fields[f.idx()].kind == k);
     let input = RuleInput {
         is_delegation: entry.is_delegation(),
-        file_role,
+        file_role: &file.role,
         block: block_name,
         item: &entry.sid,
         has_field: &has_field,
     };
-    cfg.rules
-        .iter()
-        .find(|r| r.matches(&input))
-        .map(|r| r.category)
+    let mut out = Vec::new();
+    for r in &cfg.rules {
+        if r.matches(&input) && !out.contains(&r.category) {
+            out.push(r.category);
+            // Single-category files: the first matching rule wins.
+            if !file.multi_category {
+                break;
+            }
+        }
+    }
+    out
 }

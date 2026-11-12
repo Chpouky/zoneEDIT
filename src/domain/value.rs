@@ -4,9 +4,12 @@ use std::fmt;
 
 use crate::config::{FieldSpec, ValueType};
 
-/// Parses a cfg value into an `f64` (tolerates the `f` suffix: `0.f`, `1.0`, `20`).
+/// Parses a cfg value into an `f64` (tolerates the `f` suffix: `0.f`,
+/// `1.0`, `20`, and the percent suffix used by a few weapon fields:
+/// `ChanceBleedingPerShot = 10%` → `10.0`).
 pub fn parse_value(text: &str) -> Option<f64> {
-    let t = text.trim().trim_end_matches('f');
+    let t = text.trim();
+    let t = t.strip_suffix('%').unwrap_or(t).trim_end_matches('f');
     t.parse::<f64>().ok()
 }
 
@@ -217,6 +220,8 @@ mod tests {
         assert_eq!(parse_value("160.f"), Some(160.0));
         assert_eq!(parse_value("0.25f"), Some(0.25));
         assert_eq!(parse_value("12"), Some(12.0));
+        assert_eq!(parse_value("10%"), Some(10.0));
+        assert_eq!(parse_value("2.5%"), Some(2.5));
         assert_eq!(parse_value("abc"), None);
     }
 

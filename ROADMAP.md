@@ -70,6 +70,97 @@ files that are user-relevant but not yet mappable).
       canonical key was emitted, which the merge would have added as a NEW key
       instead of replacing `weight`/`Count`/`Common`).
 
+## Weapon stats (before v2 work)
+
+Research already done and documented — full file map, the weapons by class,
+inheritance scheme and the inventoried editable fields (4 groups: GeneralSetup /
+Settings / Attributes / Inventory): `.agents/skills/stalker-weapons/`
+(SKILL.md + `references/weapons.md`).
+
+- [x] **W — Weapon stats editing** (`GameData/WeaponData/*.cfg`)
+      Load the 3 weapon files (vanilla audit, block counts verified on disk):
+      - **GeneralSetup** (`WeaponData/WeaponGeneralSetupPrototypes.cfg`) —
+        92 blocks: `TemplateWeapon` + 13 class templates + 78 weapons.
+        **3-level** `refkey` inheritance (TemplateWeapon → Template<Class> →
+        weapon), unlike anomalies (2-level).
+      - **Player settings** (`WeaponData/CharacterWeaponSettingsPrototypes/
+        PlayerWeaponSettingsPrototypes.cfg`) — 66 blocks (39 roots + 27 children);
+        damage, ranges, bleeding + 6 `*UI` display stats.
+      - **NPC settings** (`…/NPCWeaponSettingsPrototypes.cfg`) — 75 blocks
+        (39 roots + 36 children); the NPC-side damage/spread diffs.
+
+      **Extraction** — config-only, zero `extract.rs` changes: the 3 roles join
+      `[parser] block_entry_roles` (same mechanism as anomalies). One block =
+      one entry; keys under transparent structureless scopes (`RecoilParams/…`,
+      `DispersionParams/…`) attach to the block entry automatically, and only keys
+      with a configured `FieldKind` are extracted — everything else (VFX/audio/
+      socket/enum/path/boolean) is ignored by design. Files use CRLF + `//`
+      comments: already handled by the cfg lexer.
+
+      **Multi-category membership (new domain capability, the core of W).**
+      A GeneralSetup block defines fields of *every* stat group at once, so the
+      one-category-per-entry model cannot split it into per-stat views. Decision
+      (user-approved): an entry may belong to **several** categories, opt-in per
+      file via a new `[[files]] multi_category = true` flag. `classify` returns
+      *all* matching rules for such files (first-match-wins elsewhere, unchanged);
+      `Workspace.categories` becomes `Vec<Vec<CategoryId>>`; the 3 UI row filters
+      (`==`) become `contains`. Undo/redo, export, editing, search untouched
+      (keyed on entries/fields). Generic — reusable by any future wide-block file.
+
+      **Sidebar** (config-only, `section = "STATS"`, `group = "Weapons"`): 10
+      sub-entries, each a stat view of the same blocks (4–18 columns each instead
+      of one 52-column table). Templates stay visible (global defaults worth
+      editing):
+      - General — fire & cadence (6) / aiming & lean (8) / recoil (10) /
+        dispersion (4) / jams (4) / reload & ammo (14) / heating & last clip (6)
+        → 7 views over the 92 GeneralSetup blocks
+      - Player — damage & ballistics (18) / display stats (6, rule carries
+        `has_fields = ["AccuracyUI"]` so only blocks with `*UI` fields appear)
+      - NPC — combat (12)
+      Total: 77 new `FieldKind`s (shared across views, e.g. `BaseDamage` in both
+      Player and NPC views), ~52 GeneralSetup + 18 Player core + 6 `*UI` + 1 NPC.
+
+      **Other sub-tasks:**
+      - Parser: `%` suffix for values like `ChanceBleedingPerShot = 10%`
+        (`parse_value` + validation, like the existing `f` suffix; raw display).
+      - Icons: `icon_for` fallback chain — strip `_Player`/`_NPC` suffix, then a
+        `Guard` prefix, then the existing placeholder (covers
+        `GunPM_HG_Player` → `GunPM_HG.png`, `GuardGunPM_HG_NPC` →
+        `GuardGunPM_HG.png`; 56 GeneralSetup blocks, mostly templates, fall back
+        to `_placeholder.png`).
+      - Export: standard `{bpatch}` patch, one block per entry (item F's rules).
+      - Fixtures: 3 small weapon cfg files in `tests/fixtures/GameData/`
+        (load errors on a missing configured file), file-count assertions 6 → 9;
+        unit tests for multi-category classify/membership and `%` parsing.
+
+      **Out of v1 (→ E and later):** per-jam-level `WeaponJamParams.[N]` and
+      per-magazine `WeaponReloadTimePerAttachment.[N]` (list-scope, item E), the
+      per-state modifier subtrees (`RecoilParams/ShootingStateParams/…` — 30+ keys
+      duplicated at block level in other blocks), VFX/audio/sockets/enums, the
+      A/B inherited-value display & override keys (apply later, verbatim).
+
+      **Implementation status (done):** all sub-tasks implemented and `./check.sh`
+      green. Final shape, with the audit-driven deviations from the plan above:
+      - **9 sidebar rows** (dispersion merged into the recoil view):
+        fire & cadence (6) / aiming & lean (8) / recoil & dispersion (9) /
+        jams (4) / reload & ammo (7) / heating & last clip (6) over the 92
+        GeneralSetup blocks; player damage (18) / display (6) over 66 blocks;
+        NPC combat (12) over 75 blocks.
+      - **64 new `FieldKind`s** (96 total). Excluded after the value audit:
+        `PostShotDelay` / `NumberOfShotsBeforeDelay` (do not exist in STALKER 2
+        data), `DispersionRadiusMultiplierByDistanceCurve` (CurveFloat asset path
+        in the NPC file), `BaseBleeding` unbounded (vanilla values 0..45),
+        `UnloadTime` + `ProjectileSpawnOffset` added (flat numeric d1 keys).
+      - `parse_value` strips a trailing `%` (vanilla
+        `ChanceBleedingPerShot = 10%`); 4 new min/max pairs (jam chance /
+        jam durability / dead-NPC ammo / effective fire distance).
+      - Icon chain `icon_candidates`: exact SID → strip `_Player`/`_NPC` →
+        strip `Guard` prefix (both covered by tests).
+      - Fixtures: 3 weapon files (CRLF like the real ones, 3- and 4-space
+        indents, list scopes, `%` values); byte-exact roundtrip + block-count
+        (92/66/75) + vanilla-value tests in `tests/parser_test.rs`; headless
+        render test of the weapon rows in `src/ui/tests/render.rs`.
+
 ## Next up (v2) — ordered by dependency
 
 - [ ] **A — Show inherited values in sub-rows**
@@ -99,6 +190,55 @@ files that are user-relevant but not yet mappable).
 **A → B** are a pair: A makes the inherited value visible, B lets you turn a greyed
 cell into an override. **C** is standalone. **D → E** form the spawn-list work:
 D swaps the item of an existing slot, E changes the size of the list itself.
+
+## Windows build — sluggish window dragging
+
+Reported on a Windows machine: the app works, but moving the window around the
+desktop feels laggy. Root-cause investigation (no fix yet) — ranked by
+likelihood:
+
+**The amplifier.** Stock `eframe::run_native` with no repaint throttling
+(`src/main.rs`): eframe 0.31 repaints on demand, but egui requests a repaint on
+*any* input event (pointer motion included), and Windows emits redraw events on
+every window-position change. While dragging (or just hovering with a
+high-polling mouse / 144 Hz+ display), the whole `update()` runs on every
+event.
+
+Per-frame costs in `update()`, all static between edits but re-run on every
+repaint:
+
+- **Disk I/O every frame** (most Windows-specific): `show_editor` calls
+  `io::load::stale_files(ws)` unconditionally (`src/ui/mod.rs`) →
+  `std::fs::metadata` on all 6 game files per frame. On Windows each stat goes
+  through `GetFileInformationByHandle` and is hooked by Windows Defender
+  real-time protection — easily a few ms per frame, more if the game folder is
+  on a secondary drive.
+- **Full-workspace recompute every frame** in `compute_derived`
+  (`src/ui/mod.rs`): `visible_indices` scan, `anomaly_hierarchy` (rebuilds
+  HashMaps, clones every block name), `n_err` over ALL fields of the workspace
+  (not just visible), `category_counts` full scan.
+- **`anomaly_hierarchy` computed twice per frame** — once in
+  `compute_derived`, once again in `render_table` (`src/ui/table.rs`).
+- **No row virtualization**: the table is a plain `egui::ScrollArea`; every
+  row of the selected category is laid out each frame (thousands for
+  `ItemGeneratorPrototypes.cfg`), not just the ~20 on screen.
+
+Minor / one-time (probably not the culprit): 324 icon PNGs (~21 MB) are decoded
+lazily and cached by egui (one-time cost after loading a project); glow/OpenGL
+renderer and the release profile are fine.
+
+**How to confirm on the Windows machine.** The status bar shows "frame X ms":
+high values while merely moving the mouse → per-frame work. A Defender
+exclusion for the game folder + SSD should isolate the `stale_files` cost.
+
+Candidate fixes (each independent, none done yet):
+
+- [ ] Stale-check at most every N seconds (and on window focus), not every frame
+- [ ] Compute `derived` / `anomaly_hierarchy` only when the workspace revision
+      or the view filters change (cache in `EditorState`)
+- [ ] Deduplicate the second `anomaly_hierarchy` call in `render_table`
+- [ ] Cap repaints (`request_repaint_after`) so input events can't force
+      more than ~60 fps of updates
 
 ## Backlog / later
 

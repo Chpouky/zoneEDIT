@@ -74,7 +74,7 @@ pub struct Workspace {
     // Indexes (immutable after load).
     loc_index: HashMap<FieldLoc, FieldId>,
     field_owner: Vec<Option<EntryId>>,
-    categories: Vec<Option<CategoryId>>,
+    categories: Vec<Vec<CategoryId>>,
     search_keys: Vec<String>,
     orphans: Vec<Orphan>,
     generation: u64,
@@ -174,7 +174,7 @@ impl Workspace {
             .map(|e| {
                 classify(
                     &self.config,
-                    &self.files[e.file].spec.role,
+                    &self.files[e.file].spec,
                     &self.blocks[e.block.idx()].name,
                     e,
                     &self.fields,
@@ -295,9 +295,16 @@ impl Workspace {
         self.field_owner[id.idx()]
     }
 
-    /// Category of the entry (`None` if unclassified).
-    pub fn category(&self, id: EntryId) -> Option<CategoryId> {
-        self.categories[id.idx()]
+    /// Categories of the entry (empty if unclassified; several for the
+    /// `multi_category` files).
+    pub fn categories_of(&self, id: EntryId) -> &[CategoryId] {
+        &self.categories[id.idx()]
+    }
+
+    /// The entry belongs to the category (multi-category files can match
+    /// several rows of the sidebar).
+    pub fn in_category(&self, id: EntryId, cat: CategoryId) -> bool {
+        self.categories[id.idx()].contains(&cat)
     }
 
     /// Lowercase search key (name, block, context).
@@ -382,8 +389,8 @@ impl Workspace {
     /// config; `file = Some(i)`: limited to one file.
     pub fn category_counts(&self, file: Option<usize>) -> Vec<(CategoryId, usize)> {
         let mut counts = vec![0usize; self.config.categories.len()];
-        for (e, c) in self.entries.iter().zip(&self.categories) {
-            if let Some(c) = c {
+        for (e, cats) in self.entries.iter().zip(&self.categories) {
+            for &c in cats {
                 if file.is_none_or(|f| f == e.file) {
                     counts[c.idx()] += 1;
                 }

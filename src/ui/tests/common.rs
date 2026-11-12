@@ -56,7 +56,7 @@ pub(crate) fn painted_texts() -> (Vec<(String, i32, i32)>, String) {
         .expect("MedCrate category");
     let first_block = ws
         .entry_ids()
-        .find(|&id| ws.category(id) == Some(med))
+        .find(|&id| ws.in_category(id, med))
         .map(|id| ws.entry(id).block);
     let n = texts.len();
     (texts, format!("first_block={first_block:?} n_texts={n}"))

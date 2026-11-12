@@ -1,5 +1,75 @@
 # Changelog
 
+## 0.10.0
+
+### Features
+
+- **Weapon stats editing**: the three `GameData/WeaponData` files are loaded —
+  `WeaponGeneralSetupPrototypes.cfg` (92 blocks),
+  `PlayerWeaponSettingsPrototypes.cfg` (66) and
+  `NPCWeaponSettingsPrototypes.cfg` (75). One block = one weapon (same
+  block-entry mechanism as anomalies). New **Weapons** group in the STATS
+  sidebar with 9 stat views: **fire & cadence**, **aiming & lean**, **recoil
+  & dispersion**, **jams & durability**, **reload & ammo**, **heating & last
+  clip** (GeneralSetup), **damage & ballistics** + **display stats** (player)
+  and **combat stats** (NPC) — 4–18 columns each instead of one 50+ column
+  table. A weapon row appears in every view of its file (new per-file
+  `multi_category` config flag; an entry can now belong to several
+  categories).
+- **Percent values**: cfg values with a `%` suffix (`ChanceBleedingPerShot =
+  10%`) are parsed, validated and editable (like the `f` suffix).
+- **Weapon icons**: one icon per base weapon is shared by its variants —
+  `GunPM_HG_Player` / `GuardGunPM_HG_NPC` resolve to `GunPM_HG.png` /
+  `GuardGunPM_HG.png`; blocks without any icon keep the placeholder.
+- **Dynamic column widths**: value columns are sized on their header labels
+  (no more ellipsis truncation) and the table scrolls horizontally when a
+  category's columns (plus the name zone) are wider than the window — the
+  sticky header, the row names and the editable cells all scroll together.
+  Wide categories such as the 18-column **Player Damage** view are no longer
+  clipped on small windows.
+
+### UI
+
+- **Sidebar row names**: shorter weapon names — **Firing**, **Aiming**,
+  **Recoil**, **Jamming**, **Reloading**, **Heating** — and Title Case for
+  every multi-word row (e.g. *Player Damage*, *NPC Combat*, *Medical
+  Crates*, *Ammo Loot*). Config-only (`short` labels in `default.toml`).
+- **Pinned horizontal scrollbar**: the table's horizontal scrollbar now
+  stays at the bottom of the row window instead of floating under the last
+  row when a category has few rows (egui `auto_shrink(false)`).
+- **Header/rows scroll lockstep**: the sticky column labels no longer lead
+  the rows by one frame while scrolling — they use the same pre-update
+  scroll offset the rows are drawn with.
+- **Hierarchy indent**: nested rows (anomaly variants, weapon family
+  templates → guns) are indented to the right — one "↳" marker for every
+  child and *depth* × 14 px of offset, so the nesting is visible at a
+  glance. The checkbox and the value columns stay aligned; only the name
+  zone moves. New UI rule: any future nesting in the table reuses this
+  model (`child_depth` + `HIER_INDENT`), never a new arrow/indent.
+
+### Bug Fixes
+
+- **One color per weapon family**: the tint palette grew from 6 to 13
+  slots (`c::GROUP_TINTS`), and a "color unit" is now a block that has
+  children **and** sits at depth 0 or 1 of the `refkey` tree — the 10
+  weapon family templates + `TemplateWeapon`, each with its own color.
+  Guns and their variants (the real file is 4 levels deep, 29 guns are
+  parents of variants) **inherit the family tint** instead of cycling
+  through the 6 colors — pistols are one color, SMGs another. Also fixed:
+  the tint was only written for the unit blocks, so guns and anomaly
+  variants were actually painted **untinted**; it is now written for every
+  visible block (each row reads its own block tint).
+- **Specific weapons now visible in the six GeneralSetup views** (Firing,
+  Aiming, Recoil, Jamming, Reloading, Heating): the inheritance hierarchy is
+  walked **recursively** at any depth — the weapon GeneralSetup is 3 levels
+  deep (`TemplateWeapon → family template → gun`), and the level-3 rows
+  (all ~79 guns) were previously skipped: only the template rows were
+  painted. A child row at depth *d* carries one "↳" marker and is indented
+  right by *d* levels (offset = depth, never a stack of arrows), and a
+  child whose parent is filtered out (e.g. by the search) is still shown —
+  a search for a gun
+  name no longer returns an empty table.
+
 ## 0.9.0
 
 ### Features

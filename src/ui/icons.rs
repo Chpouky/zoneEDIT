@@ -40,16 +40,42 @@ fn map() -> &'static Table {
     })
 }
 
+/// Candidate names of an item icon, in priority order: the exact SID, then
+/// the weapon-variant forms (the `_Player` / `_NPC` suffixes and the `Guard`
+/// prefix stripped, e.g. `GuardGunPM_HG_NPC` → `GuardGunPM_HG` → `GunPM_HG`),
+/// so the weapon rows reuse the base weapon icon.
+fn icon_candidates(sid: &str) -> [Option<&str>; 4] {
+    let stripped = ["_Player", "_NPC"]
+        .iter()
+        .find_map(|s| sid.strip_suffix(s))
+        .unwrap_or(sid);
+    [
+        Some(sid),
+        (stripped != sid).then_some(stripped),
+        sid.strip_prefix("Guard"),
+        stripped.strip_prefix("Guard"),
+    ]
+}
+
 /// Rendering of the icon of an item SID.
 ///
 /// Fallbacks (SIDs without exported icon):
+/// - the weapon-variant name chain (`icon_candidates`) — one icon export
+///   per base weapon, shared by its `_Player` / `_NPC` / `Guard` variants;
 /// - SID containing "blueprint" (case-insensitive): dedicated icon
 ///   `_blueprint.png` (the 80 blueprint exports were identical);
-/// - sinon : le placeholder (`_placeholder.png`).
+/// - otherwise: the placeholder (`_placeholder.png`).
 pub(crate) fn icon_for(sid: &str) -> ItemIcon {
-    let (bytes, w, h, uri) = match map().get(sid) {
-        Some((bytes, w, h)) => (*bytes, *w, *h, format!("bytes://icons/{sid}.png")),
-        None => {
+    let (bytes, w, h, uri) = icon_candidates(sid)
+        .iter()
+        .find_map(|cand| match cand {
+            Some(c) => map()
+                .get(*c)
+                .copied()
+                .map(|(b, w, h)| (b, w, h, format!("bytes://icons/{c}.png"))),
+            None => None,
+        })
+        .unwrap_or_else(|| {
             let fallback = if has_substr_ignore_ascii_case(sid, "blueprint") {
                 "_blueprint"
             } else {
@@ -58,10 +84,9 @@ pub(crate) fn icon_for(sid: &str) -> ItemIcon {
             let (bytes, w, h) = map()
                 .get(fallback)
                 .copied()
-                .unwrap_or_else(|| panic!("{fallback}.png manquant dans assets/icons"));
+                .unwrap_or_else(|| panic!("{fallback}.png missing in assets/icons"));
             (bytes, w, h, format!("bytes://icons/{fallback}.png"))
-        }
-    };
+        });
     ItemIcon {
         src: egui::ImageSource::Bytes {
             uri: uri.into(),
@@ -133,7 +158,7 @@ mod tests {
                 bytes: egui::load::Bytes::Static(b),
                 ..
             } => b,
-            other => panic!("source inattendue : {other:?}"),
+            other => panic!("unexpected source: {other:?}"),
         }
     }
 
@@ -142,7 +167,7 @@ mod tests {
         let bp = map()
             .get("_blueprint")
             .copied()
-            .expect("_blueprint.png manquant");
+            .expect("_blueprint.png missing");
         for sid in ["Blueprint_D12_Upgrade_1", "blueprint_x", "X_BLuEprint"] {
             let icon = icon_for(sid);
             assert_eq!(
@@ -158,8 +183,26 @@ mod tests {
         let ph = map()
             .get("_placeholder")
             .copied()
-            .expect("_placeholder.png manquant");
+            .expect("_placeholder.png missing");
         let icon = icon_for("UnknownItem_999");
-        assert_eq!(icon_bytes(&icon), ph.0, "le placeholder devrait rester");
+        assert_eq!(icon_bytes(&icon), ph.0, "the placeholder should stay");
+    }
+
+    #[test]
+    fn weapon_variants_resolve_the_base_weapon_icon() {
+        let base = map().get("GunPM_HG").copied();
+        let ph = map().get("_placeholder").copied();
+        // Each variant resolves to an existing icon: the base weapon icon
+        // (or its `Guard` variant, when it exists).
+        for sid in ["GunPM_HG_Player", "GunPM_HG_NPC", "GuardGunPM_HG_NPC"] {
+            let icon = icon_for(sid);
+            let resolved = icon_bytes(&icon);
+            let ok = base.is_some_and(|(b, ..)| b == resolved)
+                || ph.is_some_and(|(b, ..)| b == resolved);
+            assert!(
+                ok,
+                "{sid} resolves to neither the base icon nor the placeholder"
+            );
+        }
     }
 }

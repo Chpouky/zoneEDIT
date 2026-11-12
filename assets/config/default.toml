@@ -44,6 +44,26 @@ path = "GameData/ArtifactSpawnerPrototypes.cfg"
 name = "ArtifactSpawnerPrototypes"
 role = "artifact_spawner"
 
+# Weapon stats (one block = one weapon; `multi_category`: each weapon shows
+# in several "Weapons" rows of the sidebar).
+[[files]]
+path = "GameData/WeaponData/WeaponGeneralSetupPrototypes.cfg"
+name = "WeaponGeneralSetup"
+role = "weapon_general"
+multi_category = true
+
+[[files]]
+path = "GameData/WeaponData/CharacterWeaponSettingsPrototypes/PlayerWeaponSettingsPrototypes.cfg"
+name = "PlayerWeaponSettings"
+role = "weapon_player"
+multi_category = true
+
+[[files]]
+path = "GameData/WeaponData/CharacterWeaponSettingsPrototypes/NPCWeaponSettingsPrototypes.cfg"
+name = "NPCWeaponSettings"
+role = "weapon_npc"
+multi_category = true
+
 # ---------------------------------------------------------------------------
 # Lecture des structures (noms de clés du format cfg du jeu).
 # ---------------------------------------------------------------------------
@@ -56,7 +76,8 @@ rank_keys = ["Rank", "PlayerRank"]
 caliber_key = "PriorityCaliber"
 none_value = "None"                      # "absent" caliber
 itemset_key = "ItemSetCount"             # marks a consumables set
-block_entry_roles = ["anomalies"]        # roles where the block IS the entry
+block_entry_roles = ["anomalies", "weapon_general", "weapon_player", "weapon_npc"]
+# roles where the block IS the entry
 # Roles where a scope named after a rank (Newbie / …) opens an entry for
 # the whole block, scoped to that rank.
 rank_scope_roles = ["artifact_spawner"]
@@ -354,6 +375,480 @@ long = "Fake Max"
 type = "int"
 min = 0
 
+# ---------------------------------------------------------------------------
+# Weapon stats (flat numeric keys of the three `WeaponData/*.cfg` files).
+# Asset references (meshes, sounds, VFX, curves), enums, booleans and the
+# list values (jam levels, per-magazine reload) are not editable yet.
+# ---------------------------------------------------------------------------
+[[fields]]
+kind = "FireInterval"
+short = "Fire Int"
+long = "Fire Interval"
+type = "float"
+min = 0
+
+[[fields]]
+kind = "RecoilInterval"
+short = "Recoil Int"
+long = "Recoil Interval"
+type = "float"
+min = 0
+
+[[fields]]
+kind = "FireQueueCount"
+short = "Queue"
+long = "Fire Queue Count"
+type = "int"
+min = 0
+
+[[fields]]
+kind = "CooldownTime"
+short = "Cooldown"
+long = "Cooldown Time"
+type = "float"
+min = 0
+
+[[fields]]
+kind = "UnloadTime"
+short = "Unload"
+long = "Unload Time"
+type = "float"
+min = 0
+
+[[fields]]
+kind = "ProjectileSpawnOffset"
+short = "Proj. Off"
+long = "Projectile Spawn Offset"
+type = "float"
+min = 0
+
+[[fields]]
+kind = "AimingTime"
+short = "Aim Time"
+long = "Aiming Time"
+type = "float"
+min = 0
+
+[[fields]]
+kind = "OffsetAimingTime"
+short = "Offset Aim"
+long = "Offset Aiming Time"
+type = "float"
+min = 0
+
+[[fields]]
+kind = "LeanAimingTime"
+short = "Lean"
+long = "Lean Aiming Time"
+type = "float"
+min = 0
+
+[[fields]]
+kind = "LeanAimingRestoreTime"
+short = "Lean Rest"
+long = "Lean Aiming Restore Time"
+type = "float"
+min = 0
+
+[[fields]]
+kind = "AimingFOVModifier"
+short = "Aim FOV ×"
+long = "Aiming FOV Modifier"
+type = "float"
+min = 0
+
+[[fields]]
+kind = "OffsetAimingFOVModifier"
+short = "Off. FOV ×"
+long = "Offset Aiming FOV Modifier"
+type = "float"
+min = 0
+
+[[fields]]
+kind = "AimingMovementSpeedModifier"
+short = "Move ×"
+long = "Aiming Movement Speed Modifier"
+type = "float"
+min = 0
+
+[[fields]]
+kind = "HoldBreathDrainModifier"
+short = "Breath ×"
+long = "Hold Breath Drain Modifier"
+type = "float"
+min = 0
+
+[[fields]]
+kind = "RecoilRadius"
+short = "Recoil R"
+long = "Recoil Radius"
+type = "float"
+min = 0
+
+[[fields]]
+kind = "RecoilPatternInterval"
+short = "Pattern Int"
+long = "Recoil Pattern Interval"
+type = "float"
+min = 0
+
+[[fields]]
+kind = "RecoilMaxPitch"
+short = "Max Pitch"
+long = "Recoil Max Pitch"
+type = "float"
+min = 0
+
+[[fields]]
+kind = "LinearCurveStartShot"
+short = "Norm. Start"
+long = "Linear Curve Start Shot"
+type = "int"
+min = 0
+
+[[fields]]
+kind = "LinearCurveShotsToNormalize"
+short = "Norm. Shots"
+long = "Linear Curve Shots To Normalize"
+type = "int"
+min = 0
+
+[[fields]]
+kind = "CameraAimRecoilPatternLoopStartKeyIndex"
+short = "Cam Aim Key"
+long = "Camera Aim Recoil Pattern Loop Start Key Index"
+type = "int"
+min = 0
+
+[[fields]]
+kind = "CameraHipRecoilPatternLoopStartKeyIndex"
+short = "Cam Hip Key"
+long = "Camera Hip Recoil Pattern Loop Start Key Index"
+type = "int"
+min = 0
+
+[[fields]]
+kind = "SpeedCoef"
+short = "Speed ×"
+long = "Speed Coef"
+type = "float"
+min = 0
+
+[[fields]]
+kind = "FirstShotDispersionRadius"
+short = "1st Shot R"
+long = "First Shot Dispersion Radius"
+type = "float"
+min = 0
+
+[[fields]]
+kind = "MinJamChance"
+short = "Jam Min"
+long = "Min Jam Chance"
+type = "float"
+min = 0
+max = 1
+
+[[fields]]
+kind = "MaxJamChance"
+short = "Jam Max"
+long = "Max Jam Chance"
+type = "float"
+min = 0
+max = 1
+
+[[fields]]
+kind = "MinJamDurabilityThreshold"
+short = "Dur. Min"
+long = "Min Jam Durability Threshold"
+type = "float"
+min = 0
+max = 1
+
+[[fields]]
+kind = "MaxJamDurabilityThreshold"
+short = "Dur. Max"
+long = "Max Jam Durability Threshold"
+type = "float"
+min = 0
+max = 1
+
+[[fields]]
+kind = "MaxAmmo"
+short = "Mag Size"
+long = "Max Ammo"
+type = "int"
+min = 0
+
+[[fields]]
+kind = "AmmoPerShot"
+short = "Per Shot"
+long = "Ammo Per Shot"
+type = "int"
+min = 0
+
+[[fields]]
+kind = "PerBulletReloadingAmmoCount"
+short = "Reload / B"
+long = "Per Bullet Reloading Ammo Count"
+type = "int"
+min = 0
+
+[[fields]]
+kind = "AdditionalBulletsAfterReloadingCount"
+short = "Extra B"
+long = "Additional Bullets After Reloading Count"
+type = "int"
+min = 0
+
+[[fields]]
+kind = "SingleBulletReloadTimeMultiplier"
+short = "1B ×"
+long = "Single Bullet Reload Time Multiplier"
+type = "float"
+min = 0
+
+# Loaded ammo of a dead NPC: -1 means "none".
+[[fields]]
+kind = "MinDeadNPCLoadedAmmoCount"
+short = "Dead Min"
+long = "Min Dead NPC Loaded Ammo Count"
+type = "int"
+
+[[fields]]
+kind = "MaxDeadNPCLoadedAmmoCount"
+short = "Dead Max"
+long = "Max Dead NPC Loaded Ammo Count"
+type = "int"
+
+[[fields]]
+kind = "MaxHeatingValue"
+short = "Heat Max"
+long = "Max Heating Value"
+type = "float"
+min = 0
+
+[[fields]]
+kind = "PerBulletHeatingValue"
+short = "Heat / B"
+long = "Per Bullet Heating Value"
+type = "float"
+min = 0
+
+[[fields]]
+kind = "LastClipBulletsCount"
+short = "Last Clip B"
+long = "Last Clip Bullets Count"
+type = "int"
+min = 0
+
+[[fields]]
+kind = "LastTotalBulletsCount"
+short = "Last Tot. B"
+long = "Last Total Bullets Count"
+type = "int"
+min = 0
+
+[[fields]]
+kind = "LastClipBulletsDamageModifier"
+short = "Last Clip ×"
+long = "Last Clip Bullets Damage Modifier"
+type = "float"
+min = 0
+
+[[fields]]
+kind = "LastTotalBulletsDamageModifier"
+short = "Last Tot. ×"
+long = "Last Total Bullets Damage Modifier"
+type = "float"
+min = 0
+
+[[fields]]
+kind = "BaseDamage"
+short = "Base Dmg"
+long = "Base Damage"
+type = "float"
+min = 0
+
+[[fields]]
+kind = "ArmorDamage"
+short = "Armor Dmg"
+long = "Armor Damage"
+type = "float"
+min = 0
+
+[[fields]]
+kind = "ArmorPiercing"
+short = "Armor P."
+long = "Armor Piercing"
+type = "float"
+min = 0
+
+[[fields]]
+kind = "CoverPiercing"
+short = "Cover P."
+long = "Cover Piercing"
+type = "float"
+min = 0
+
+[[fields]]
+kind = "BaseBleeding"
+short = "Bleeding"
+# Percent-like value in the cfg (vanilla: 0..45, not a 0..1 fraction).
+long = "Base Bleeding"
+type = "float"
+min = 0
+
+# Percent value in the cfg (`ChanceBleedingPerShot = 10%`).
+[[fields]]
+kind = "ChanceBleedingPerShot"
+short = "Bleed / Shot"
+long = "Chance Bleeding Per Shot"
+type = "float"
+min = 0
+
+[[fields]]
+kind = "DurabilityDamagePerShot"
+short = "Dur. Dmg / Shot"
+long = "Durability Damage Per Shot"
+type = "float"
+min = 0
+
+[[fields]]
+kind = "EffectiveFireDistanceMin"
+short = "Dist Min"
+long = "Effective Fire Distance Min"
+type = "float"
+min = 0
+
+[[fields]]
+kind = "EffectiveFireDistanceMax"
+short = "Dist Max"
+long = "Effective Fire Distance Max"
+type = "float"
+min = 0
+
+[[fields]]
+kind = "FireDistanceDropOff"
+short = "Drop-Off"
+long = "Fire Distance Drop Off"
+type = "float"
+min = 0
+
+[[fields]]
+kind = "MinBulletDistanceDamageModifier"
+short = "Close Dmg ×"
+long = "Min Bullet Distance Damage Modifier"
+type = "float"
+min = 0
+
+[[fields]]
+kind = "MinBulletDistanceArmorPiercingModifier"
+short = "Close P. ×"
+long = "Min Bullet Distance Armor Piercing Modifier"
+type = "float"
+min = 0
+
+[[fields]]
+kind = "DistanceDropOffLength"
+short = "Drop-Off Len"
+long = "Distance Drop Off Length"
+type = "float"
+min = 0
+
+[[fields]]
+kind = "BulletDropHeight"
+short = "Drop Height"
+long = "Bullet Drop Height"
+type = "float"
+min = 0
+
+[[fields]]
+kind = "BulletDropLength"
+short = "Drop Len"
+long = "Bullet Drop Length"
+type = "float"
+min = 0
+
+[[fields]]
+kind = "DispersionRadius"
+short = "Dispersion"
+long = "Dispersion Radius"
+type = "float"
+min = 0
+
+[[fields]]
+kind = "DispersionRadiusZombieAddend"
+short = "Zombie +"
+long = "Dispersion Radius Zombie Addend"
+type = "float"
+min = 0
+
+[[fields]]
+kind = "Accuracy"
+short = "Accuracy"
+long = "Accuracy"
+type = "float"
+min = 0
+max = 1
+
+[[fields]]
+kind = "FireLoudness"
+short = "Loudness"
+long = "Fire Loudness"
+type = "float"
+min = 0
+max = 1
+
+# Displayed bars of the HUD (0..1).
+[[fields]]
+kind = "AccuracyUI"
+short = "Acc. UI"
+long = "Accuracy UI"
+type = "float"
+min = 0
+max = 1
+
+[[fields]]
+kind = "RateOfFireUI"
+short = "RoF UI"
+long = "Rate Of Fire UI"
+type = "float"
+min = 0
+max = 1
+
+[[fields]]
+kind = "HandlingUI"
+short = "Handling"
+long = "Handling UI"
+type = "float"
+min = 0
+max = 1
+
+[[fields]]
+kind = "DamageUI"
+short = "Dmg UI"
+long = "Damage UI"
+type = "float"
+min = 0
+max = 1
+
+[[fields]]
+kind = "RangeUI"
+short = "Range UI"
+long = "Range UI"
+type = "float"
+min = 0
+max = 1
+
+[[fields]]
+kind = "BaseComfort"
+short = "Comfort"
+long = "Base Comfort"
+type = "float"
+min = 0
+max = 1
+
 # Controlled pairs (min ≤ max) when the user edits one of the two.
 [[pairs]]
 min = "MinCount"
@@ -374,6 +869,22 @@ max = "MaxCooldown"
 [[pairs]]
 min = "FakeArtifactSpawnAmountMin"
 max = "FakeArtifactSpawnAmountMax"
+
+[[pairs]]
+min = "MinJamChance"
+max = "MaxJamChance"
+
+[[pairs]]
+min = "MinJamDurabilityThreshold"
+max = "MaxJamDurabilityThreshold"
+
+[[pairs]]
+min = "MinDeadNPCLoadedAmmoCount"
+max = "MaxDeadNPCLoadedAmmoCount"
+
+[[pairs]]
+min = "EffectiveFireDistanceMin"
+max = "EffectiveFireDistanceMax"
 
 [[batch]]
 label = "Set Chance…"
@@ -397,42 +908,42 @@ inputs = ["Min", "Max"]
 [[categories]]
 id = "MedCrate"
 label = "Medical crates (DestructibleStash)"
-short = "Medical crates"
+short = "Medical Crates"
 group = "Medical"
 columns = ["Weight", "Chance", "MinCount", "MaxCount"]
 
 [[categories]]
 id = "MedStash"
 label = "Medical stashes (StashMedicine)"
-short = "Medical stashes"
+short = "Medical Stashes"
 group = "Medical"
 columns = ["Weight", "Chance", "MinCount", "MaxCount", "MinSpawnChance", "MaxSpawnChance"]
 
 [[categories]]
 id = "MedDirect"
 label = "Direct player / NPC spawn"
-short = "Direct spawn"
+short = "Direct Spawn"
 group = "Medical"
 columns = ["Weight", "Chance", "MinCount", "MaxCount"]
 
 [[categories]]
 id = "AmmoGenerator"
 label = "Ammo generators"
-short = "Ammo generators"
+short = "Ammo Generators"
 group = "Ammo"
 columns = ["Chance", "MinCount", "MaxCount"]
 
 [[categories]]
 id = "AmmoLoot"
 label = "Ammo loot (player / NPC)"
-short = "Ammo loot"
+short = "Ammo Loot"
 group = "Ammo"
 columns = ["Weight", "Chance", "MinCount", "MaxCount"]
 
 [[categories]]
 id = "AmmoSmart"
 label = "Smart ammo stashes"
-short = "Smart stashes"
+short = "Smart Stashes"
 group = "Ammo"
 columns = ["MinCount", "MaxCount", "Weight", "Chance"]
 
@@ -446,7 +957,7 @@ columns = ["Weight", "Chance", "MinCount", "MaxCount", "AmmoMinCount", "AmmoMaxC
 [[categories]]
 id = "Food"
 label = "Food & drink (stashes & generators)"
-short = "Food & drink"
+short = "Food & Drink"
 group = "Consumables"
 columns = ["Weight", "Chance", "MinCount", "MaxCount", "MinSpawnChance", "MaxSpawnChance"]
 
@@ -488,21 +999,21 @@ columns = ["Weight", "Chance", "MinCount", "MaxCount"]
 [[categories]]
 id = "Loot"
 label = "Mutant & animal loot"
-short = "Mutant loot"
+short = "Mutant Loot"
 group = "Loot"
 columns = ["Weight", "Chance", "MinCount", "MaxCount"]
 
 [[categories]]
 id = "NpcLoadout"
 label = "NPC loadouts (world factions)"
-short = "NPC loadouts"
+short = "NPC Loadouts"
 group = "NPCs"
 columns = ["Weight", "Chance", "MinCount", "MaxCount", "AmmoMinCount", "AmmoMaxCount", "MinDurability", "MaxDurability"]
 
 [[categories]]
 id = "Quest"
 label = "Quest & unique items"
-short = "Quest items"
+short = "Quest Items"
 group = "Quest"
 columns = ["Weight", "Chance", "MinCount", "MaxCount"]
 
@@ -529,13 +1040,172 @@ columns = [
   "FakeArtifactSpawnAmountMax",
 ]
 
+# Weapon stats: one row per stat family (one weapon belongs to all the
+# rows of its file — `multi_category`).
+[[categories]]
+id = "WeaponFire"
+label = "Weapon fire & cadence (GeneralSetup)"
+short = "Firing"
+section = "STATS"
+group = "Weapons"
+columns = [
+  "FireInterval",
+  "RecoilInterval",
+  "FireQueueCount",
+  "CooldownTime",
+  "UnloadTime",
+  "ProjectileSpawnOffset",
+]
+
+[[categories]]
+id = "WeaponAiming"
+label = "Weapon aiming & lean (GeneralSetup)"
+short = "Aiming"
+section = "STATS"
+group = "Weapons"
+columns = [
+  "AimingTime",
+  "OffsetAimingTime",
+  "LeanAimingTime",
+  "LeanAimingRestoreTime",
+  "AimingFOVModifier",
+  "OffsetAimingFOVModifier",
+  "AimingMovementSpeedModifier",
+  "HoldBreathDrainModifier",
+]
+
+[[categories]]
+id = "WeaponRecoil"
+label = "Weapon recoil & dispersion (GeneralSetup)"
+short = "Recoil"
+section = "STATS"
+group = "Weapons"
+columns = [
+  "RecoilRadius",
+  "RecoilPatternInterval",
+  "RecoilMaxPitch",
+  "LinearCurveStartShot",
+  "LinearCurveShotsToNormalize",
+  "CameraAimRecoilPatternLoopStartKeyIndex",
+  "CameraHipRecoilPatternLoopStartKeyIndex",
+  "SpeedCoef",
+  "FirstShotDispersionRadius",
+]
+
+[[categories]]
+id = "WeaponJams"
+label = "Weapon jams & durability (GeneralSetup)"
+short = "Jamming"
+section = "STATS"
+group = "Weapons"
+columns = [
+  "MinJamChance",
+  "MaxJamChance",
+  "MinJamDurabilityThreshold",
+  "MaxJamDurabilityThreshold",
+]
+
+[[categories]]
+id = "WeaponReload"
+label = "Weapon reload & ammo (GeneralSetup)"
+short = "Reloading"
+section = "STATS"
+group = "Weapons"
+columns = [
+  "MaxAmmo",
+  "AmmoPerShot",
+  "PerBulletReloadingAmmoCount",
+  "AdditionalBulletsAfterReloadingCount",
+  "SingleBulletReloadTimeMultiplier",
+  "MinDeadNPCLoadedAmmoCount",
+  "MaxDeadNPCLoadedAmmoCount",
+]
+
+[[categories]]
+id = "WeaponHeating"
+label = "Weapon heating & last clip (GeneralSetup)"
+short = "Heating"
+section = "STATS"
+group = "Weapons"
+columns = [
+  "MaxHeatingValue",
+  "PerBulletHeatingValue",
+  "LastClipBulletsCount",
+  "LastTotalBulletsCount",
+  "LastClipBulletsDamageModifier",
+  "LastTotalBulletsDamageModifier",
+]
+
+[[categories]]
+id = "PlayerWeaponDamage"
+label = "Player weapon damage & ballistics"
+short = "Player Damage"
+section = "STATS"
+group = "Weapons"
+columns = [
+  "BaseDamage",
+  "ArmorDamage",
+  "ArmorPiercing",
+  "CoverPiercing",
+  "BaseBleeding",
+  "ChanceBleedingPerShot",
+  "DurabilityDamagePerShot",
+  "EffectiveFireDistanceMin",
+  "EffectiveFireDistanceMax",
+  "FireDistanceDropOff",
+  "MinBulletDistanceDamageModifier",
+  "MinBulletDistanceArmorPiercingModifier",
+  "DistanceDropOffLength",
+  "BulletDropHeight",
+  "BulletDropLength",
+  "DispersionRadius",
+  "Accuracy",
+  "FireLoudness",
+]
+
+[[categories]]
+id = "PlayerWeaponDisplay"
+label = "Player weapon display stats (HUD bars)"
+short = "Player Display"
+section = "STATS"
+group = "Weapons"
+columns = [
+  "AccuracyUI",
+  "RateOfFireUI",
+  "HandlingUI",
+  "DamageUI",
+  "RangeUI",
+  "BaseComfort",
+]
+
+[[categories]]
+id = "NpcWeaponCombat"
+label = "NPC weapon combat stats"
+short = "NPC Combat"
+section = "STATS"
+group = "Weapons"
+columns = [
+  "BaseDamage",
+  "ArmorDamage",
+  "ArmorPiercing",
+  "BaseBleeding",
+  "ChanceBleedingPerShot",
+  "DurabilityDamagePerShot",
+  "FireDistanceDropOff",
+  "MinBulletDistanceDamageModifier",
+  "DistanceDropOffLength",
+  "BulletDropHeight",
+  "DispersionRadius",
+  "DispersionRadiusZombieAddend",
+]
+
 # ---------------------------------------------------------------------------
 # "ARTIFACTS" section: world artifact spawners (one entry per rank scope).
 # ---------------------------------------------------------------------------
 [[categories]]
 id = "ArtifactSpawner"
 label = "World artifact spawners (per rank)"
-short = "Artifact spawners"
+short = "Artifact Spawners"
 section = "ARTIFACTS"
 group = "Artifacts"
 columns = [
@@ -573,6 +1243,44 @@ file_roles = ["anomalies"]
 [[rules]]
 category = "ArtifactSpawner"
 file_roles = ["artifact_spawner"]
+
+# Weapon stats: one rule per stat family (the files are `multi_category`,
+# so every weapon block belongs to ALL the families of its file).
+[[rules]]
+category = "WeaponFire"
+file_roles = ["weapon_general"]
+
+[[rules]]
+category = "WeaponAiming"
+file_roles = ["weapon_general"]
+
+[[rules]]
+category = "WeaponRecoil"
+file_roles = ["weapon_general"]
+
+[[rules]]
+category = "WeaponJams"
+file_roles = ["weapon_general"]
+
+[[rules]]
+category = "WeaponReload"
+file_roles = ["weapon_general"]
+
+[[rules]]
+category = "WeaponHeating"
+file_roles = ["weapon_general"]
+
+[[rules]]
+category = "PlayerWeaponDamage"
+file_roles = ["weapon_player"]
+
+[[rules]]
+category = "PlayerWeaponDisplay"
+file_roles = ["weapon_player"]
+
+[[rules]]
+category = "NpcWeaponCombat"
+file_roles = ["weapon_npc"]
 
 # Charge des NPCs du monde : groupée par bloc de faction, quel que soit l'item.
 [[rules]]

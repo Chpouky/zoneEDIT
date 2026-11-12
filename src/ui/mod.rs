@@ -469,11 +469,32 @@ pub(crate) fn show_editor(ctx: &egui::Context, ws: &mut Workspace, st: &mut Edit
                 });
             }
 
-            // Body: row scroll + sticky header + batch bar
+            // Body: row scroll (vertical + horizontal) + sticky header + batch bar
             let batch_h = BATCH_H;
             let body_h = (ui.available_height() - batch_h).max(0.0);
             let cols = columns_for(ws, st.view.category);
-            let centers = col_centers(ui.cursor().min.x + w, cols.len());
+            // Header labels: the `long` names (the column headers of the
+            // config). The width of each value column is measured on them —
+            // the label is never truncated; when the name zone or the
+            // columns do not fit in the window, the table scrolls
+            // horizontally. The `short` names live in the field modal.
+            let hdr_font = FontId::proportional(FONT_SMALL);
+            let labels: Vec<String> = cols
+                .iter()
+                .map(|col| {
+                    let spec = ws.spec(*col);
+                    if spec.is_percent() {
+                        // Spawn chances / bleed chances are shown in %.
+                        format!("{} %", spec.long.to_uppercase())
+                    } else {
+                        spec.long.to_uppercase()
+                    }
+                })
+                .collect();
+            // Column geometry in body-local coordinates (0 = left edge of
+            // the body); the rows add their own left edge (which carries
+            // the horizontal scroll offset) when drawing the cells.
+            let geo = col_layout(ui.painter(), w, &labels, &hdr_font);
             let body = Rect::from_min_size(ui.cursor().min, vec2(w, body_h));
             let mut body_ui = ui.new_child(
                 egui::UiBuilder::new()
@@ -497,48 +518,51 @@ pub(crate) fn show_editor(ctx: &egui::Context, ws: &mut Workspace, st: &mut Edit
                         .max_rect(scroll_rect)
                         .layout(Layout::top_down(Align::LEFT)),
                 );
-                egui::ScrollArea::vertical()
+                // Offset the rows will be drawn at this frame: the ScrollArea
+                // loads it from storage BEFORE processing this frame's wheel,
+                // so the header must use this same (pre-update) value to
+                // stay in lockstep with the rows while scrolling.
+                // NOTE: `ScrollArea::id_salt(x)` stores `Id::new(x)`, so the
+                // state id is `make_persistent_id(Id::new(Id::new("rows")))`
+                // (the double wrap is intentional — it must match `begin()`).
+                let rows_id = scroll_ui.make_persistent_id(egui::Id::new(egui::Id::new("rows")));
+                let pre_off_x = egui::containers::scroll_area::State::load(ctx, rows_id)
+                    .map(|s| s.offset.x)
+                    .unwrap_or(0.0);
+                egui::ScrollArea::both()
                     .id_salt(egui::Id::new("rows"))
+                    // Keep the full viewport size even when the rows are
+                    // short: the horizontal scrollbar stays pinned to the
+                    // bottom of the row window (not under the last row).
+                    .auto_shrink(false)
                     .show(&mut scroll_ui, |ui| {
-                        render_table(ui, ws, st, &derived, &cols, &centers);
+                        render_table(ui, ws, st, &derived, &cols, &geo);
                     });
                 ui.painter().rect_filled(hdr, 0.0, c::INPUT_BG);
                 ui.painter().line_segment(
                     [hdr.left_bottom(), hdr.right_bottom()],
                     Stroke::new(1.0_f32, c::BORDER),
                 );
-                let p = ui.painter();
+                // Sticky header: the labels follow the horizontal scroll
+                // offset (the pre-update one, see `pre_off_x`) and are
+                // clipped to the header band (the child ui clips its
+                // painter to its own rect).
+                let off = -pre_off_x;
+                let hdr_ui = ui.new_child(egui::UiBuilder::new().max_rect(hdr));
+                let p = hdr_ui.painter();
                 p.text(
-                    hdr.left_center() + vec2(GEN_TRI_X, 0.0),
+                    hdr.left_center() + vec2(GEN_TRI_X + off, 0.0),
                     Align2::LEFT_CENTER,
                     "GENERATOR / ITEM",
-                    FontId::proportional(FONT_SMALL),
+                    hdr_font.clone(),
                     c::TEXT_MUTED,
                 );
-                let font = FontId::proportional(FONT_SMALL);
-                for (i, col) in cols.iter().enumerate() {
-                    // Spawn chances are entered/displayed in %.
-                    let spec = ws.spec(*col);
-                    let label = if spec.is_percent() {
-                        format!("{} %", spec.long.to_uppercase())
-                    } else {
-                        spec.long.to_uppercase()
-                    };
-                    // A label wider than its column pitch (cell + gap) would
-                    // bleed into the neighbours: truncate with an ellipsis
-                    // (the `long` names are expected to be short — the modal
-                    // shows `short`).
-                    let cell = if i == cols.len() - 1 {
-                        CELL_W_LAST
-                    } else {
-                        CELL_W
-                    };
-                    let label = fit_label(p, label.as_str(), &font, cell + CELL_GAP);
+                for (i, _) in cols.iter().enumerate() {
                     p.text(
-                        pos2(centers[i], hdr.center().y),
+                        pos2(hdr.left() + off + geo.cols[i].center, hdr.center().y),
                         Align2::CENTER_CENTER,
-                        label,
-                        font.clone(),
+                        labels[i].clone(),
+                        hdr_font.clone(),
                         c::TEXT_MUTED,
                     );
                 }
@@ -631,7 +655,7 @@ pub(crate) fn visible_indices(ws: &Workspace, st: &EditorState) -> Vec<EntryId> 
     let search = st.view.search.trim().to_lowercase();
     ws.entry_ids()
         .filter(|&id| {
-            ws.category(id) == Some(st.view.category)
+            ws.in_category(id, st.view.category)
                 && (search.is_empty() || ws.search_key(id).contains(&search))
                 && st.view.file_filter.is_none_or(|f| f == ws.entry(id).file)
                 && matches_difficulty(&ws.entry(id).ctx, st.view.difficulty, st.view.no_rank)
@@ -666,12 +690,14 @@ pub(crate) fn compute_derived(ws: &Workspace, st: &EditorState) -> Derived {
     // wins if a block is involved in several delegations.
     let mut delegation_tint: HashMap<EntryId, Color32> = HashMap::new();
     let mut block_tint: HashMap<BlockId, Color32> = HashMap::new();
-    for (i, &id) in visible_idx.iter().enumerate() {
+    let mut n_deleg = 0;
+    for &id in &visible_idx {
         let e = ws.entry(id);
         if !e.is_delegation() {
             continue;
         }
-        let tint = c::DELEG_TINTS[i % c::DELEG_TINTS.len()];
+        let tint = c::GROUP_TINTS[n_deleg % c::GROUP_TINTS.len()];
+        n_deleg += 1;
         delegation_tint.insert(id, tint);
         block_tint.entry(e.block).or_insert(tint);
         let target = ws
@@ -684,33 +710,64 @@ pub(crate) fn compute_derived(ws: &Workspace, st: &EditorState) -> Derived {
         }
     }
 
-    // Anomaly hierarchy: each visible (parent + its children) group shares one
-    // tint from the palette (screen order), so the linked rows are color-coded
-    // together. The tint replaces the old fold triangle as the hierarchy cue
-    // (children are always shown, marked by a small corner arrow).
+    // Block-entry hierarchy (anomalies, weapons). A block is a COLOR UNIT
+    // when it has children AND sits at depth 0 or 1 in the `refkey` tree
+    // (file root, or direct child of the root) — the "family" level. It
+    // takes the next palette tint (screen order); each visible block of
+    // the tree is then tinted with its CLOSEST color-unit ancestor (itself
+    // when it is one). Deeper parents do NOT open a new color: the real
+    // weapon GeneralSetup is 4 levels deep (TemplateWeapon → family
+    // template → gun → gun variant, 29 guns are parents of variants), so
+    // a per-parent tint would burn the palette — instead every pistol
+    // variant keeps the pistol-family tint, every SMG the SMG tint, and
+    // each of the 12 families stays distinct. The anomaly data (2 levels)
+    // is unchanged: the bases are depth-0 units, the variants inherit.
     let (anom_parent, anom_children) = anomaly_hierarchy(ws);
-    let mut group = 0;
+    let depth_of = |b: BlockId| -> usize {
+        let mut d = 0;
+        let mut cur = b;
+        while let Some(&p) = anom_parent.get(&cur) {
+            d += 1;
+            cur = p;
+            if d >= 8 {
+                break; // cycle guard: the data is at most 4 deep
+            }
+        }
+        d
+    };
+    let mut group: HashMap<BlockId, usize> = HashMap::new();
+    let mut n_groups = 0;
     for &vid in &visible_idx {
         let b = ws.entry(vid).block;
         if !is_block_entry_block(ws, b) {
             continue;
         }
-        if anom_parent.contains_key(&b) {
-            continue; // a child: tinted by its parent's group.
+        if anom_children.get(&b).is_none_or(Vec::is_empty) {
+            continue; // standalone block: no group, no tint.
         }
-        let kids: Vec<BlockId> = anom_children
-            .get(&b)
-            .cloned()
-            .filter(|c| !c.is_empty())
-            .unwrap_or_default();
-        if kids.is_empty() {
-            continue; // standalone anomaly: no group, no tint.
+        if depth_of(b) > 1 {
+            continue; // deeper parent: inherits the family tint.
         }
-        let tint = c::DELEG_TINTS[group % c::DELEG_TINTS.len()];
-        group += 1;
-        block_tint.entry(b).or_insert(tint);
-        for k in kids {
-            block_tint.entry(k).or_insert(tint);
+        group.entry(b).or_insert(n_groups);
+        n_groups += 1;
+    }
+    for &vid in &visible_idx {
+        let b = ws.entry(vid).block;
+        if !is_block_entry_block(ws, b) {
+            continue;
+        }
+        // Insert for `b` (the visible block being tinted), NOT for the
+        // unit found up the chain: every row reads its OWN block tint, so
+        // the whole subtree must be filled with the family color.
+        let mut cur = Some(b);
+        while let Some(cb) = cur {
+            if let Some(&g) = group.get(&cb) {
+                block_tint
+                    .entry(b)
+                    .or_insert(c::GROUP_TINTS[g % c::GROUP_TINTS.len()]);
+                break;
+            }
+            cur = anom_parent.get(&cb).copied();
         }
     }
 

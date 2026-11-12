@@ -103,6 +103,12 @@ pub(crate) const RANK_NAME_X: f32 = 78.0;
 pub(crate) const SET_LABEL_X: f32 = 96.0;
 /// Gap between the item name and its small rank label.
 pub(crate) const RANK_LABEL_GAP: f32 = 8.0;
+/// Horizontal indent per hierarchy level in a "block = entry" tree
+/// (anomaly variant, weapon family template, gun). A child at depth *d*
+/// carries ONE "↳" marker and its name is shifted right by *d* × this
+/// constant — the offset, not the number of arrows, encodes the depth
+/// (see `draw_item_row`).
+pub(crate) const HIER_INDENT: f32 = 14.0;
 /// Inset of the row-reset button center from the right edge of the row.
 pub(crate) const ROW_RESET_INSET: f32 = 26.0;
 // ---------------------------------------------------------------------------
@@ -118,15 +124,19 @@ pub(crate) const CB_BOX: f32 = 13.0;
 pub(crate) const CB_HIT: f32 = 18.0;
 
 // ---------------------------------------------------------------------------
-// Value cells (right-anchored columns, see `widgets::col_centers`)
+// Value cells (right-anchored columns, see `widgets::col_layout`)
 // ---------------------------------------------------------------------------
 
-/// Width of a numeric cell.
-pub(crate) const CELL_W: f32 = 70.0;
-/// Width of the last cell (narrower).
-pub(crate) const CELL_W_LAST: f32 = 62.0;
-/// Horizontal spacing between cells.
+/// Minimum width of a numeric column (the column widens to fit its label).
+pub(crate) const COL_W_MIN: f32 = 72.0;
+/// Horizontal padding added on each side of a column's measured label.
+pub(crate) const COL_PAD_X: f32 = 8.0;
+/// Horizontal spacing between columns.
 pub(crate) const CELL_GAP: f32 = 8.0;
+/// Minimum width of the name zone (left edge of the row → first column):
+/// below it the table content grows wider than the window and the table
+/// scrolls horizontally.
+pub(crate) const NAME_MIN_W: f32 = 240.0;
 /// Right margin of the cell zone: row reset button (20 px)
 /// + right margin (16 px) + gap (8 px).
 pub(crate) const COLS_RIGHT_MARGIN: f32 = 44.0;
