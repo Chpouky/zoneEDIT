@@ -10,6 +10,25 @@ hierarchy) are shipped; everything under **Next up** is the **v2.x** line on top
 
 ## Shipped
 
+- **v0.11.0** — TRADERS page: all 97 trader-named blocks (the 64 shops, the shared
+  sub-pools they delegate to, the wandering-NPC-trader generators) on a dedicated
+  sidebar section grouped by location + **Universal / Other**; shops are regular
+  foldable generator rows (Item Spawns model); no trader block left in the
+  item-spawn categories (new `exclude_block` matcher, `contains = ["Trade",
+  "trader"]`); the page is uncolored (delegation tint skipped there). Weapon
+  hierarchy rows show an inherited icon; the three batch buttons are no longer
+  shipped (config-only removal, feature kept).
+- **v0.10.0** — Weapon stats editing: the three `GameData/WeaponData` files
+  loaded, 9 stat views in a **Weapons** group (4–18 columns each), recursive
+  `refkey` hierarchy (4 levels deep) with one "↳" + depth × 14 px indent, one
+  color per weapon family, percent values, dynamic column widths + horizontal
+  scroll, shorter sidebar labels, pinned scrollbar, header/rows scroll
+  lockstep, Windows build fix.
+- **v0.9.0** — World artifact spawners (**ARTIFACTS** section, 93 spawners,
+  one row per spawner × rank, 10 columns incl. the 4 rarity chances, icon of
+  the first artifact); cfg key aliases (`weight`, `AmmoMaxcount`); weapon
+  durability range (`MinDurability`/`MaxDurability`); export fix: aliased keys
+  re-emitted verbatim, `{bpatch}` only on the first node.
 - **v0.8.0** — STATS « Anomalies »: `AnomalyPrototypes.cfg` loaded (one block = one
   entry), 11 behaviour fields editable, parent → child hierarchy (shared tint + "↳"
   prefix, always expanded), `block_entry_roles` config mechanism.
