@@ -69,6 +69,9 @@
   child whose parent is filtered out (e.g. by the search) is still shown —
   a search for a gun
   name no longer returns an empty table.
+- **Windows release build**: the icon paths generated for `include_bytes!`
+  now use forward slashes — Windows backslashes were parsed as string
+  escapes and broke the CI compile.
 
 ## 0.9.0
 
