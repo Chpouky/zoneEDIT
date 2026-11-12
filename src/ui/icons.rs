@@ -17,6 +17,11 @@ include!(concat!(env!("OUT_DIR"), "/icons_table.rs"));
 pub struct ItemIcon {
     pub src: egui::ImageSource<'static>,
     pub size: egui::Vec2,
+    /// True only when the SID (and its variant chain) resolved to the
+    /// generic `_placeholder.png`. A blueprint SID resolves to the
+    /// dedicated `_blueprint.png` icon: that is a REAL icon, not a
+    /// placeholder.
+    pub is_placeholder: bool,
 }
 
 type Table = HashMap<&'static str, (&'static [u8], u32, u32)>;
@@ -66,13 +71,13 @@ fn icon_candidates(sid: &str) -> [Option<&str>; 4] {
 ///   `_blueprint.png` (the 80 blueprint exports were identical);
 /// - otherwise: the placeholder (`_placeholder.png`).
 pub(crate) fn icon_for(sid: &str) -> ItemIcon {
-    let (bytes, w, h, uri) = icon_candidates(sid)
+    let (bytes, w, h, uri, is_placeholder) = icon_candidates(sid)
         .iter()
         .find_map(|cand| match cand {
             Some(c) => map()
                 .get(*c)
                 .copied()
-                .map(|(b, w, h)| (b, w, h, format!("bytes://icons/{c}.png"))),
+                .map(|(b, w, h)| (b, w, h, format!("bytes://icons/{c}.png"), false)),
             None => None,
         })
         .unwrap_or_else(|| {
@@ -85,7 +90,13 @@ pub(crate) fn icon_for(sid: &str) -> ItemIcon {
                 .get(fallback)
                 .copied()
                 .unwrap_or_else(|| panic!("{fallback}.png missing in assets/icons"));
-            (bytes, w, h, format!("bytes://icons/{fallback}.png"))
+            (
+                bytes,
+                w,
+                h,
+                format!("bytes://icons/{fallback}.png"),
+                fallback == "_placeholder",
+            )
         });
     ItemIcon {
         src: egui::ImageSource::Bytes {
@@ -93,6 +104,7 @@ pub(crate) fn icon_for(sid: &str) -> ItemIcon {
             bytes: egui::load::Bytes::Static(bytes),
         },
         size: egui::vec2(w as f32, h as f32),
+        is_placeholder,
     }
 }
 
@@ -186,6 +198,23 @@ mod tests {
             .expect("_placeholder.png missing");
         let icon = icon_for("UnknownItem_999");
         assert_eq!(icon_bytes(&icon), ph.0, "the placeholder should stay");
+    }
+
+    #[test]
+    fn placeholder_flag_tracks_the_fallback() {
+        assert!(
+            icon_for("UnknownItem_999").is_placeholder,
+            "unknown SID → placeholder"
+        );
+        assert!(
+            !icon_for("GunPM_HG").is_placeholder,
+            "a real icon is not a placeholder"
+        );
+        // The blueprint icon is a dedicated icon, not a placeholder.
+        assert!(
+            !icon_for("Blueprint_X").is_placeholder,
+            "blueprint icon is a real icon"
+        );
     }
 
     #[test]

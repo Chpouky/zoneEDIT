@@ -4,6 +4,12 @@
 
 ### UI
 
+- Weapon hierarchy: child rows now show an icon when a real one exists —
+  the gun's own, or inherited from the closest ancestor with one (a gun
+  variant reuses its gun's icon, whatever the depth). A child with no icon
+  anywhere in the chain (anomaly variants, family templates) stays
+  icon-less: the "↳" arrow and the family tint already group it with its
+  parent.
 - The three batch buttons of the batch bar ("Set Chance…", "Set Min/Max…",
   "Set Min/Max Spawn %…") are no longer shipped: the bottom bar only shows
   the selection counter, "Reset Selected", "Reset All" and the PRESET

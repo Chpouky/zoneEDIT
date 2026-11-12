@@ -1204,6 +1204,10 @@ fn weapon_rows_render() {
     assert_ne!(fam1_t, fam2_t, "each family must get its own color");
     assert_ne!(root_t, fam1_t, "root template keeps its own color");
     assert_ne!(root_t, fam2_t, "root template keeps its own color");
+    // NOTE: icon presence is NOT asserted here — a bare headless
+    // `egui::Context` never emits textured meshes (the texture loads,
+    // but the image shape is only produced by a real backend), so it
+    // can only be verified in the app itself.
 }
 
 /// A hierarchy child whose parent is excluded by the search is still

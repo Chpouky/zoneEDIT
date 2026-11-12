@@ -6,6 +6,7 @@ use egui::{pos2, Align2, Color32, FontId, Id, Sense, Ui};
 
 use crate::config::CategoryId;
 use crate::domain::{BlockId, EntryId, FieldId, FieldKind, Workspace};
+use crate::ui::icons::icon_for;
 use crate::ui::layout::RowLayout;
 use crate::ui::metrics::{FONT_BODY, FONT_BUTTON, ROW_RESET_INSET};
 use crate::ui::ops::draw_row_reset;
@@ -80,6 +81,25 @@ pub(crate) fn anomaly_hierarchy(
     (parent, children)
 }
 
+/// Effective icon key of a block-entry row: the block's own name, or —
+/// when it has no icon of its own — the name of the CLOSEST ancestor
+/// that does (a weapon variant reuses its gun's icon, whatever the depth
+/// of the chain). `None`: neither the block nor any of its ancestors has
+/// a real icon (anomaly variants — the row keeps the arrow + tint only).
+fn block_icon_key(
+    ws: &Workspace,
+    bid: BlockId,
+    parent: &HashMap<BlockId, BlockId>,
+) -> Option<String> {
+    let name = ws.block(bid).name.clone();
+    if !icon_for(&name).is_placeholder {
+        return Some(name);
+    }
+    parent
+        .get(&bid)
+        .and_then(|&p| block_icon_key(ws, p, parent))
+}
+
 /// Draws a block-entry row and, recursively, its visible children (see
 /// `anomaly_hierarchy`). Every child carries ONE "↳" marker, indented by
 /// its depth (`depth × HIER_INDENT`, see `draw_item_row`). Children are
@@ -95,6 +115,7 @@ fn draw_block_entry_tree(
     cols: &[FieldKind],
     geo: &Cols,
     row_w: f32,
+    parent: &HashMap<BlockId, BlockId>,
     children: &HashMap<BlockId, Vec<BlockId>>,
     visible: &HashMap<BlockId, EntryId>,
     depth: usize,
@@ -105,6 +126,10 @@ fn draw_block_entry_tree(
         .get(&id)
         .copied()
         .or_else(|| derived.block_tint.get(&bid).copied());
+    // A child row shows its own icon, or the closest ancestor's (see
+    // `block_icon_key`); depth-0 rows (roots, and orphan children promoted
+    // by the search) keep the placeholder when the SID has no icon.
+    let icon_key = block_icon_key(ws, bid, parent);
     draw_item_row(
         ui,
         ws,
@@ -116,6 +141,7 @@ fn draw_block_entry_tree(
         &derived.visible_idx,
         row_tint,
         depth,
+        icon_key.as_deref(),
     );
     let kids: &[BlockId] = children.get(&bid).map_or(&[], Vec::as_slice);
     for &cbid in kids {
@@ -129,6 +155,7 @@ fn draw_block_entry_tree(
                 cols,
                 geo,
                 row_w,
+                parent,
                 children,
                 visible,
                 depth + 1,
@@ -222,6 +249,7 @@ pub(crate) fn render_table(
                 cols,
                 geo,
                 row_w,
+                &anom_parent,
                 &anom_children,
                 &visible_anom,
                 0,
@@ -266,6 +294,7 @@ pub(crate) fn render_table(
             &derived.visible_idx,
             row_tint,
             0,
+            None,
         );
     }
 

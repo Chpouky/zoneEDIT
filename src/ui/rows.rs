@@ -1,6 +1,6 @@
 //! Table rows: generator, item (delegation included), orphan, cell.
 
-use crate::ui::icons::icon_for;
+use crate::ui::icons::{icon_for, ItemIcon};
 use egui::{
     pos2, vec2, Align, Align2, Color32, CornerRadius, FontId, Id, Layout, Rect, Sense, Stroke,
     StrokeKind, Ui,
@@ -92,6 +92,25 @@ pub(crate) fn draw_generator_row(
     }
 }
 
+/// The icon of a row (item column): scaled into the icon box + the
+/// "icon at original size" pop-up on hover (cursor following).
+fn paint_row_icon(ui: &mut Ui, rect: Rect, icon: &ItemIcon) {
+    let rl = RowLayout::item();
+    let scale = (ICON_H / icon.size.y).min(ICON_BOX_W / icon.size.x);
+    let icon_size = icon.size * scale;
+    if let Some(icon_rect) = rl.icon_rect(rect, icon_size) {
+        egui::Image::new(icon.src.clone())
+            .fit_to_exact_size(icon_size)
+            .paint_at(ui, icon_rect);
+        let hovered = ui
+            .ctx()
+            .input(|i| i.pointer.hover_pos().filter(|_| !i.pointer.any_down()));
+        if let Some(pos) = hovered.filter(|pos| icon_rect.contains(*pos)) {
+            crate::ui::icons::draw_tooltip(ui, icon, pos);
+        }
+    }
+}
+
 /// Draws an item row (regular row or delegation): checkbox, icon, name,
 /// value cells, row reset button, selection (click / Ctrl /
 /// Shift). `visible` is the list of displayed entries (screen order), for
@@ -114,6 +133,10 @@ pub(crate) fn draw_item_row(
     // template → gun). Every child carries ONE "↳" marker; the depth is
     // shown by the name indent (`depth × HIER_INDENT`), not by arrows.
     child_depth: usize,
+    // Block-entry rows only: the icon key to paint when the block has no
+    // icon of its own (the closest ancestor's — see `block_icon_key` in
+    // `table.rs`). `None` outside block-entry hierarchies.
+    icon_key_override: Option<&str>,
 ) {
     // `fids` is copied before the calls that take `ws` mutably
     // (cells, reset): `e` is no longer borrowed at that point (NLL).
@@ -146,27 +169,20 @@ pub(crate) fn draw_item_row(
             );
         }
     }
-    // Icon: drawn for regular item rows and anomaly PARENT rows. Anomaly
-    // CHILD rows have no icon — only the "↳" arrow marks them (the icon would
-    // duplicate the parent's). Anomaly SIDs have no dedicated icon file, so
-    // they fall back to the placeholder. World spawner rows use the icon of
-    // their first listed artifact (the `icon_sid` hint) instead of the
-    // spawner SID, which has no icon file.
+    // Icon: regular (depth-0) item rows always get one — the placeholder
+    // when the SID has no icon file (world spawner rows use the icon of
+    // their first listed artifact, the `icon_sid` hint). Hierarchy CHILD
+    // rows get an icon only when a REAL one exists: their own, or
+    // inherited from the closest ancestor with one (`icon_key_override`
+    // — a weapon variant reuses its gun's icon). A child without any real
+    // icon stays icon-less: the "↳" arrow and the family tint already
+    // group it with its parent (anomaly variants have no icon file).
     if child_depth == 0 {
-        let icon = icon_for(e.icon_key());
-        let scale = (ICON_H / icon.size.y).min(ICON_BOX_W / icon.size.x);
-        let icon_size = icon.size * scale;
-        if let Some(icon_rect) = rl.icon_rect(rect, icon_size) {
-            egui::Image::new(icon.src.clone())
-                .fit_to_exact_size(icon_size)
-                .paint_at(ui, icon_rect);
-            // "Icon at original size" pop-up on hover (cursor following).
-            let hovered = ui
-                .ctx()
-                .input(|i| i.pointer.hover_pos().filter(|_| !i.pointer.any_down()));
-            if let Some(pos) = hovered.filter(|pos| icon_rect.contains(*pos)) {
-                crate::ui::icons::draw_tooltip(ui, &icon, pos);
-            }
+        paint_row_icon(ui, rect, &icon_for(e.icon_key()));
+    } else if let Some(key) = icon_key_override {
+        let icon = icon_for(key);
+        if !icon.is_placeholder {
+            paint_row_icon(ui, rect, &icon);
         }
     }
     // name — truncated so it never slides under the first value column
