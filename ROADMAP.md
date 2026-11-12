@@ -161,6 +161,49 @@ Settings / Attributes / Inventory): `.agents/skills/stalker-weapons/`
         (92/66/75) + vanilla-value tests in `tests/parser_test.rs`; headless
         render test of the weapon rows in `src/ui/tests/render.rs`.
 
+## Traders page (before v2 work)
+
+Audit of `GameData/ItemGeneratorPrototypes/DynamicItemGenerator.cfg` (already
+loaded, role `dynamic_npc`): 64 `*TradeItemGenerator*` blocks = the in-game
+shops, 534 rows (368 items — `Chance` on all, `MinCount`/`MaxCount` on 346,
+`Min/MaxDurability` on 146 — no `Weight` — + 166 delegation references). Today
+they leak into the item-spawn categories (armor, grenades, detectors, food,
+artifacts, attachments, NPC loadouts — 40 of the 64 visible in 7 categories;
+technicians/medics invisible). The 9 `GeneralNPC_TradeItemGenerator_*` faction
+shops (currently under NPC Loadouts) move to the new page too.
+
+- [x] **T — Traders page** (`*TradeItemGenerator*` blocks, grouped by location)
+      A dedicated **TRADERS** sidebar section: one category per location
+      (Zalesie, Terricon, Sultansk, Malakhit, Rostok, Yanov, Asylum, Ikar, Newbie
+      Village, Cement Plant, Chemical Plant, Pripyat, Shevchenko, Varta, Backwater,
+      Red Forest, Eger, Suska, Selma, Power Plug — 20) plus a **Universal /
+      Other** category (universal shops + the 10 NPC faction traders) = 21
+      categories. 5 columns each: `Chance`, `MinCount`, `MaxCount`,
+      `MinDurability`, `MaxDurability` (existing `FieldKind`s — no new field
+      type).
+      - **Classification**: new `exclude_block` matcher on `[[rules]]` (a rule
+        matches only when the block does NOT match the pattern) — the 10
+        item-spawn rules that currently capture trade blocks get
+        `exclude_block = { contains = ["TradeItemGenerator"] }`; the 21 new
+        TRADERS rules match the blocks by name prefix (block names are not
+        uniform: `TraderSuska`, `Bartender_ChemicalPlant`, …). Config-only
+        otherwise.
+      - **Rendering (hierarchy, user-confirmed)**: each generator is a flat
+        parent row (checkbox + block name, always expanded — no fold), its
+        items are child rows with the single "↳" prefix + 1× `HIER_INDENT`
+        (same model as the anomaly/weapon hierarchy). Items keep their own
+        icon when one exists (otherwise the block's closest-ancestor icon).
+        Block detection is config-driven (`parser.trade_block_markers`,
+        substring match — `GeneralNPC_TradeItemGenerator_<faction>` carries
+        the marker mid-name).
+      - **Trade filter**: the existing `st.view.trade` topbar filter stays —
+        it is a cross-section search ("trade" in SID/block/context),
+        independent of the new section.
+      - Tests: `fixture_traders` (classification + `exclude_block` +
+        delegation), headless render test `traders_rows_render` (parent row +
+        "↳" child rows + delegation row + 5 headers), real-gamedata
+        `real_traders_page` (64 blocks, 534 rows, 0 leakage).
+
 ## Next up (v2) — ordered by dependency
 
 - [ ] **A — Show inherited values in sub-rows**

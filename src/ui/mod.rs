@@ -771,6 +771,20 @@ pub(crate) fn compute_derived(ws: &Workspace, st: &EditorState) -> Derived {
         }
     }
 
+    // Trader blocks (TRADERS page): the parent row and all the item child
+    // rows share one tint (same model as the delegation rows). The
+    // delegation loop above already tinted the blocks that carry a visible
+    // delegation — keep it; otherwise take the next palette tint (screen
+    // order).
+    let mut n_trade = 0;
+    for &vid in &visible_idx {
+        let b = ws.entry(vid).block;
+        if is_trade_block(ws, b) && !block_tint.contains_key(&b) {
+            block_tint.insert(b, c::GROUP_TINTS[n_trade % c::GROUP_TINTS.len()]);
+            n_trade += 1;
+        }
+    }
+
     Derived {
         visible_idx,
         block_entries,

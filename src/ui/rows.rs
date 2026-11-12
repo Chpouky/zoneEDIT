@@ -7,7 +7,7 @@ use egui::{
 };
 
 use crate::domain::{value, BlockId, EntryId, FieldId, FieldKind, Workspace};
-use crate::ui::layout::{paint_block_label, RowLayout};
+use crate::ui::layout::{paint_block_label, BlockLabel, RowLayout};
 use crate::ui::metrics::{
     CELL_BOX_H, CELL_BOX_W, CELL_FONT, CELL_RADIUS, FONT_BODY, FONT_SMALL, HIER_INDENT, ICON_BOX_W,
     ICON_H, ICON_X, LINE_FONT, LINE_X_GAP, ORPHAN_TRI_X, RANK_LABEL_GAP, ROW_H_TALL,
@@ -55,10 +55,13 @@ pub(crate) fn draw_generator_row(
             &painter,
             ui,
             rect,
-            &b.name,
-            b.line,
-            b.delegation_refs,
-            st.view.show_refs,
+            &BlockLabel {
+                name_x: rl.name_x,
+                name: &b.name,
+                line: b.line,
+                refs: b.delegation_refs,
+                show_refs: st.view.show_refs,
+            },
         );
     }
     if ui
@@ -84,6 +87,69 @@ pub(crate) fn draw_generator_row(
     if let Some(gencb) = rl.cb_rect(rect) {
         if ui
             .interact(gencb, Id::new(("gencb", bid.idx())), Sense::click())
+            .clicked()
+        {
+            let keys = selectable_row_keys(ws, block_entries, None);
+            toggle_select_all(st, &keys);
+        }
+    }
+}
+
+/// Trader generator row (TRADERS page): "select all" checkbox + block
+/// name (strong) + line + refs tag. No fold triangle — the items of the
+/// generator are always drawn beneath it, indented with the "↳" marker
+/// (same grouping model as the anomaly child rows, without the fold).
+pub(crate) fn draw_trade_parent_row(
+    ui: &mut Ui,
+    ws: &Workspace,
+    st: &mut EditorState,
+    bid: BlockId,
+    block_entries: &[EntryId],
+    row_w: f32,
+    tint: Option<Color32>,
+) {
+    let rl = RowLayout::trade();
+    // Trader header rows are painted over the panel background.
+    let rect = row_frame(ui, row_w, rl.h, Some(c::PANEL), tint);
+    {
+        let painter = ui.painter_at(rect);
+        // "Select whole block" checkbox — column common to all levels.
+        let cb_keys = selectable_row_keys(ws, block_entries, None);
+        if let Some(cb) = rl.cb_rect(rect) {
+            draw_checkbox(
+                &painter,
+                cb.center(),
+                cb_state_for(&cb_keys, &st.selection.batch),
+            );
+        }
+        let b = ws.block(bid);
+        paint_block_label(
+            &painter,
+            ui,
+            rect,
+            &BlockLabel {
+                name_x: rl.name_x,
+                name: &b.name,
+                line: b.line,
+                refs: b.delegation_refs,
+                show_refs: st.view.show_refs,
+            },
+        );
+    }
+    // Click on the row: select all (the row is never folded, so there is
+    // no triangle zone to test).
+    if ui
+        .interact(rect, Id::new(("trade", bid.idx())), Sense::click())
+        .clicked()
+    {
+        let keys = selectable_row_keys(ws, block_entries, None);
+        toggle_select_all(st, &keys);
+    }
+    // "Select whole block" checkbox: registered after the rect of the whole
+    // block to catch the clicks of its zone.
+    if let Some(trcb) = rl.cb_rect(rect) {
+        if ui
+            .interact(trcb, Id::new(("tradecb", bid.idx())), Sense::click())
             .clicked()
         {
             let keys = selectable_row_keys(ws, block_entries, None);
@@ -172,17 +238,23 @@ pub(crate) fn draw_item_row(
     // Icon: regular (depth-0) item rows always get one — the placeholder
     // when the SID has no icon file (world spawner rows use the icon of
     // their first listed artifact, the `icon_sid` hint). Hierarchy CHILD
-    // rows get an icon only when a REAL one exists: their own, or
-    // inherited from the closest ancestor with one (`icon_key_override`
-    // — a weapon variant reuses its gun's icon). A child without any real
-    // icon stays icon-less: the "↳" arrow and the family tint already
-    // group it with its parent (anomaly variants have no icon file).
+    // rows get an icon only when a REAL one exists: their own first (a
+    // trade-block item keeps its gun/armor/… icon), then the inherited
+    // one from the closest ancestor with one (`icon_key_override` — a
+    // weapon variant reuses its gun's icon). A child without any real
+    // icon stays icon-less: the "↳" arrow and the tint already group it
+    // with its parent (anomaly variants have no icon file).
     if child_depth == 0 {
         paint_row_icon(ui, rect, &icon_for(e.icon_key()));
-    } else if let Some(key) = icon_key_override {
-        let icon = icon_for(key);
-        if !icon.is_placeholder {
-            paint_row_icon(ui, rect, &icon);
+    } else {
+        let own = icon_for(e.icon_key());
+        if !own.is_placeholder {
+            paint_row_icon(ui, rect, &own);
+        } else if let Some(key) = icon_key_override {
+            let icon = icon_for(key);
+            if !icon.is_placeholder {
+                paint_row_icon(ui, rect, &icon);
+            }
         }
     }
     // name — truncated so it never slides under the first value column
@@ -199,9 +271,12 @@ pub(crate) fn draw_item_row(
         let t = delegation_target(e);
         let painter = ui.painter_at(rect);
         let font = FontId::proportional(FONT_BODY);
-        let label = fit_label(&painter, &format!("↳ {t}"), &font, name_max_w);
+        // Hierarchy child (trade block): the "↳ target" label carries the
+        // same indent as a regular child name.
+        let dx = child_depth as f32 * HIER_INDENT;
+        let label = fit_label(&painter, &format!("↳ {t}"), &font, name_max_w - dx);
         painter.text(
-            rl.name_pos(rect),
+            pos2(name_x + dx, cy),
             Align2::LEFT_CENTER,
             label,
             font,

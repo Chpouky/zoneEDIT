@@ -10,7 +10,9 @@ use crate::ui::icons::icon_for;
 use crate::ui::layout::RowLayout;
 use crate::ui::metrics::{FONT_BODY, FONT_BUTTON, ROW_RESET_INSET};
 use crate::ui::ops::draw_row_reset;
-use crate::ui::rows::{draw_cell, draw_generator_row, draw_item_row, draw_orphan_row};
+use crate::ui::rows::{
+    draw_cell, draw_generator_row, draw_item_row, draw_orphan_row, draw_trade_parent_row,
+};
 use crate::ui::state::{Derived, EditorState};
 use crate::ui::widgets::{
     cb_state_for, col_at, draw_checkbox, row_frame, selectable_row_keys, toggle_select_all, Cols,
@@ -33,6 +35,19 @@ pub(crate) fn is_block_entry_block(ws: &Workspace, bid: BlockId) -> bool {
     }
     let role = &ws.files()[ws.block(bid).file].spec.role;
     roles.iter().any(|r| r == role)
+}
+
+/// Trader generator block (TRADERS page): its items are drawn indented
+/// beneath an always-expanded parent row (never folded) — see
+/// `RowLayout::trade` / `draw_trade_parent_row`. The markers come from the
+/// config (`parser.trade_block_markers`) and are matched as substrings.
+pub(crate) fn is_trade_block(ws: &Workspace, bid: BlockId) -> bool {
+    let markers = &ws.config().parser.trade_block_markers;
+    if markers.is_empty() {
+        return false;
+    }
+    let name = ws.block(bid).name.as_str();
+    markers.iter().any(|m| name.contains(m.as_str()))
 }
 
 /// Inheritance of the "block = entry" files (anomalies, weapons): for each
@@ -198,12 +213,25 @@ pub(crate) fn render_table(
         let bid = e.block;
         // Anomaly-style blocks ("block = entry") render as a single flat row.
         let be = is_block_entry_block(ws, bid);
+        // Trader generator: parent row always expanded (never folded).
+        let tb = is_trade_block(ws, bid);
         let block_entries: &[EntryId] = derived.block_entries.get(&bid).map_or(&[], Vec::as_slice);
         if last_block != Some(bid) {
             // ---- generator row ----
             // Skipped for block-entries: the item row below IS the anomaly
             // (a redundant, foldable header would just repeat its name).
-            if !be {
+            if be {
+            } else if tb {
+                draw_trade_parent_row(
+                    ui,
+                    ws,
+                    st,
+                    bid,
+                    block_entries,
+                    row_w,
+                    derived.block_tint.get(&bid).copied(),
+                );
+            } else {
                 draw_generator_row(
                     ui,
                     ws,
@@ -220,9 +248,9 @@ pub(crate) fn render_table(
         }
         // Folded block (default): hide ALL the lines of the block
         // (before, the `continue` above only skipped the 1st entry, the
-        // following ones remained). Block-entries are never folded: their
-        // row is always shown.
-        if !be && !st.view.expanded.contains(&bid) {
+        // following ones remained). Block-entries and trade blocks are
+        // never folded: their rows are always shown.
+        if !be && !tb && !st.view.expanded.contains(&bid) {
             continue;
         }
 
@@ -283,6 +311,8 @@ pub(crate) fn render_table(
         }
 
         // ---- item row ----
+        // Trade block: the items are the children of the parent row (one
+        // "↳" marker + HIER_INDENT, same model as the anomaly child rows).
         draw_item_row(
             ui,
             ws,
@@ -293,7 +323,7 @@ pub(crate) fn render_table(
             row_w,
             &derived.visible_idx,
             row_tint,
-            0,
+            tb as usize,
             None,
         );
     }

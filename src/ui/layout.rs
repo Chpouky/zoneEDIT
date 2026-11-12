@@ -138,6 +138,21 @@ impl RowLayout {
         }
     }
 
+    /// Trader generator row (TRADERS page): checkbox + name in the item
+    /// name column (its items are drawn below it, indented by `HIER_INDENT`
+    /// with the "↳" marker) — no fold triangle (the row is never folded)
+    /// and no icon.
+    pub(crate) fn trade() -> Self {
+        Self {
+            h: ROW_H_TALL,
+            cb: Some(CB_CENTER_X),
+            tri: None,
+            icon_x: None,
+            name_x: ITEM_NAME_X,
+            set_label_x: None,
+        }
+    }
+
     /// Set/caliber row: itemset label (or group label in the name column) +
     /// value cells, no checkbox and no triangle.
     pub(crate) fn set_row() -> Self {
@@ -196,36 +211,47 @@ impl RowLayout {
 
 /// Paints the block header label: the name (strong) + the "L{line}" label
 /// (muted, monospace) + the optional refs tag (child ui, natural size).
-pub(crate) fn paint_block_label(
-    p: &Painter,
-    ui: &mut egui::Ui,
-    row: Rect,
-    name: &str,
-    line: usize,
-    refs: u32,
-    show_refs: bool,
-) {
+/// `name_x` is the name offset from the left edge of the row: the block
+/// header uses `GEN_NAME_X` (right of the fold triangle), the trader
+/// parent row uses the item name column (`ITEM_NAME_X` — its children are
+/// indented below it).
+/// Text painted on a generator / trader parent row: the block name,
+/// its source line and the optional delegation-refs tag.
+pub(crate) struct BlockLabel<'a> {
+    /// X of the name (RowLayout::name_x — depends on the row type).
+    pub name_x: f32,
+    /// Block name.
+    pub name: &'a str,
+    /// 1-based source line of the block.
+    pub line: usize,
+    /// Delegations pointing at the block (drives the tag).
+    pub refs: u32,
+    /// Paint the "{refs} refs" tag (view.show_refs).
+    pub show_refs: bool,
+}
+
+pub(crate) fn paint_block_label(p: &Painter, ui: &mut egui::Ui, row: Rect, label: &BlockLabel<'_>) {
     let cy = row.center().y;
     let name_w = p
         .text(
-            pos2(row.left() + GEN_NAME_X, cy),
+            pos2(row.left() + label.name_x, cy),
             egui::Align2::LEFT_CENTER,
-            name.to_owned(),
+            label.name.to_owned(),
             egui::FontId::proportional(FONT_BODY),
             c::TEXT_STRONG,
         )
         .width();
-    let lx = row.left() + GEN_NAME_X + name_w + LINE_X_GAP;
+    let lx = row.left() + label.name_x + name_w + LINE_X_GAP;
     let lin_w = p
         .text(
             pos2(lx, cy),
             egui::Align2::LEFT_CENTER,
-            format!("L{line}"),
+            format!("L{}", label.line),
             egui::FontId::monospace(LINE_FONT),
             c::TEXT_MUTED,
         )
         .width();
-    if show_refs && refs > 0 {
+    if label.show_refs && label.refs > 0 {
         let area = Rect::from_min_size(
             pos2(lx + lin_w + TAG_X_GAP, row.top() + TAG_TOP),
             vec2(TAG_W, TAG_H),
@@ -235,7 +261,7 @@ pub(crate) fn paint_block_label(
                 .max_rect(area)
                 .layout(egui::Layout::left_to_right(egui::Align::Center)),
         );
-        crate::ui_kit::tag(&mut ch, &format!("{refs} refs"), false);
+        crate::ui_kit::tag(&mut ch, &format!("{} refs", label.refs), false);
     }
 }
 
@@ -246,7 +272,12 @@ mod tests {
     #[test]
     fn columns_are_aligned_across_row_types() {
         // The checkbox column is common to all the rows that have one.
-        for rl in [RowLayout::item(), RowLayout::generator(), RowLayout::rank()] {
+        for rl in [
+            RowLayout::item(),
+            RowLayout::generator(),
+            RowLayout::rank(),
+            RowLayout::trade(),
+        ] {
             assert_eq!(rl.cb, Some(CB_CENTER_X));
         }
         // The headers (no icon) put their triangle in the icon slot or
@@ -257,6 +288,12 @@ mod tests {
         assert!(gen.name_x < ITEM_NAME_X);
         assert!(rank.name_x < ITEM_NAME_X);
         assert_eq!(rank.name_x, RowLayout::set_row().name_x);
+        // The trader parent row: no triangle (never folded), name in the
+        // item name column (its children are indented below it).
+        let trade = RowLayout::trade();
+        assert!(trade.tri.is_none());
+        assert_eq!(trade.name_x, ITEM_NAME_X);
+        assert_eq!(trade.icon_x, None);
     }
 
     #[test]

@@ -1476,3 +1476,71 @@ fn cells_scroll_with_the_rows() {
         );
     }
 }
+
+/// TRADERS page: a `*_TradeItemGenerator` block is painted as an
+/// always-expanded parent row (checkbox + block name, no fold triangle),
+/// its items as "↳" child rows underneath, and its delegation reference
+/// as a "↳ target" child row. The header shows the trade columns.
+#[test]
+fn traders_rows_render() {
+    let mut ws = test_workspace();
+    let section_idx = ws
+        .config()
+        .sections()
+        .iter()
+        .position(|s| s == "TRADERS")
+        .expect("TRADERS section present");
+    let mut st = EditorState::default();
+    st.view.section = section_idx;
+    st.view.category = ws
+        .config()
+        .category_id("Sultansk")
+        .unwrap_or_else(|| panic!("Sultansk category present"));
+    let ctx = egui::Context::default();
+    crate::ui_kit::apply_theme(&ctx);
+    ctx.begin_pass(raw_1440());
+    show_editor(&ctx, &mut ws, &mut st);
+    let out = ctx.end_pass();
+    let texts: Vec<String> = out
+        .shapes
+        .iter()
+        .filter_map(|cs| match &cs.shape {
+            egui::Shape::Text(t) => Some(t.galley.text().to_string()),
+            _ => None,
+        })
+        .collect();
+    let dump = texts.join("\n");
+    // Sidebar row (short label of the category).
+    assert!(
+        texts.iter().any(|t| t == "Sultansk"),
+        "sidebar row 'Sultansk' missing.\n{dump}"
+    );
+    // Parent row: the block name, in the item name column.
+    assert!(
+        texts
+            .iter()
+            .any(|t| t.contains("SultanskTrader_TradeItemGenerator")),
+        "trade parent row missing.\n{dump}"
+    );
+    // Item child rows: ONE "↳" marker + name (long names may be fitted).
+    for item in ["Battle_Varta_Armor", "Medkit", "GrenadeF1"] {
+        assert!(
+            texts.iter().any(|t| t.starts_with('↳') && t.contains(item)),
+            "child row '↳ {item}' missing.\n{dump}"
+        );
+    }
+    // Delegation child row: the target generator name.
+    assert!(
+        texts
+            .iter()
+            .any(|t| t.starts_with('↳') && t.contains("MedicUniversal")),
+        "delegation child row missing.\n{dump}"
+    );
+    // Header: the long labels of the trade columns (uppercased).
+    for h in ["CHANCE", "MIN COUNT", "MAX COUNT", "MIN DUR", "MAX DUR"] {
+        assert!(
+            texts.iter().any(|t| t == h),
+            "header '{h}' missing.\n{dump}"
+        );
+    }
+}

@@ -83,6 +83,10 @@ block_entry_roles = ["anomalies", "weapon_general", "weapon_player", "weapon_npc
 rank_scope_roles = ["artifact_spawner"]
 # Scope listing the items a spawner spawns: the first SID is the row's icon.
 icon_list_scope = "ListOfArtifacts"
+# Blocks whose items are drawn beneath an always-expanded parent row
+# (TRADERS page), matched by block-name substring (some blocks carry the
+# marker in the middle of the name: GeneralNPC_TradeItemGenerator_*).
+trade_block_markers = ["TradeItemGenerator"]
 
 # cfg key aliases: alias -> canonical key.
 # - `weight` (lowercase) is used by some generators (e.g.
@@ -1213,16 +1217,191 @@ columns = [
 ]
 
 # ---------------------------------------------------------------------------
-# Règles de classification, évaluées DANS L'ORDRE : la première qui
-# correspond donne la catégorie (aucune → entrée hors périmètre).
+# "TRADERS" section: trader generator blocks (`*_TradeItemGenerator`),
+# grouped by location. The items are drawn indented beneath an
+# always-expanded parent row (`parser.trade_block_markers`); the
+# "↳ target" delegation rows are part of the view.
+# ---------------------------------------------------------------------------
+[[categories]]
+id = "Zalesie"
+label = "Traders — Zalesie"
+short = "Zalesie"
+section = "TRADERS"
+group = "Locations"
+columns = ["Chance", "MinCount", "MaxCount", "MinDurability", "MaxDurability"]
+
+[[categories]]
+id = "Terricon"
+label = "Traders — Terricon"
+short = "Terricon"
+section = "TRADERS"
+group = "Locations"
+columns = ["Chance", "MinCount", "MaxCount", "MinDurability", "MaxDurability"]
+
+[[categories]]
+id = "Sultansk"
+label = "Traders — Sultansk"
+short = "Sultansk"
+section = "TRADERS"
+group = "Locations"
+columns = ["Chance", "MinCount", "MaxCount", "MinDurability", "MaxDurability"]
+
+[[categories]]
+id = "Malakhit"
+label = "Traders — Malakhit"
+short = "Malakhit"
+section = "TRADERS"
+group = "Locations"
+columns = ["Chance", "MinCount", "MaxCount", "MinDurability", "MaxDurability"]
+
+[[categories]]
+id = "Rostok"
+label = "Traders — Rostok"
+short = "Rostok"
+section = "TRADERS"
+group = "Locations"
+columns = ["Chance", "MinCount", "MaxCount", "MinDurability", "MaxDurability"]
+
+[[categories]]
+id = "Yanov"
+label = "Traders — Yanov"
+short = "Yanov"
+section = "TRADERS"
+group = "Locations"
+columns = ["Chance", "MinCount", "MaxCount", "MinDurability", "MaxDurability"]
+
+[[categories]]
+id = "Asylum"
+label = "Traders — Asylum"
+short = "Asylum"
+section = "TRADERS"
+group = "Locations"
+columns = ["Chance", "MinCount", "MaxCount", "MinDurability", "MaxDurability"]
+
+[[categories]]
+id = "Ikar"
+label = "Traders — Ikar"
+short = "Ikar"
+section = "TRADERS"
+group = "Locations"
+columns = ["Chance", "MinCount", "MaxCount", "MinDurability", "MaxDurability"]
+
+[[categories]]
+id = "NewbieVillage"
+label = "Traders — Newbie Village"
+short = "Newbie Village"
+section = "TRADERS"
+group = "Locations"
+columns = ["Chance", "MinCount", "MaxCount", "MinDurability", "MaxDurability"]
+
+[[categories]]
+id = "CementPlant"
+label = "Traders — Cement Plant"
+short = "Cement Plant"
+section = "TRADERS"
+group = "Locations"
+columns = ["Chance", "MinCount", "MaxCount", "MinDurability", "MaxDurability"]
+
+[[categories]]
+id = "ChemicalPlant"
+label = "Traders — Chemical Plant"
+short = "Chemical Plant"
+section = "TRADERS"
+group = "Locations"
+columns = ["Chance", "MinCount", "MaxCount", "MinDurability", "MaxDurability"]
+
+[[categories]]
+id = "Pripyat"
+label = "Traders — Pripyat"
+short = "Pripyat"
+section = "TRADERS"
+group = "Locations"
+columns = ["Chance", "MinCount", "MaxCount", "MinDurability", "MaxDurability"]
+
+[[categories]]
+id = "Shevchenko"
+label = "Traders — Shevchenko"
+short = "Shevchenko"
+section = "TRADERS"
+group = "Locations"
+columns = ["Chance", "MinCount", "MaxCount", "MinDurability", "MaxDurability"]
+
+[[categories]]
+id = "Varta"
+label = "Traders — Varta"
+short = "Varta"
+section = "TRADERS"
+group = "Locations"
+columns = ["Chance", "MinCount", "MaxCount", "MinDurability", "MaxDurability"]
+
+[[categories]]
+id = "Backwater"
+label = "Traders — Backwater"
+short = "Backwater"
+section = "TRADERS"
+group = "Locations"
+columns = ["Chance", "MinCount", "MaxCount", "MinDurability", "MaxDurability"]
+
+[[categories]]
+id = "RedForest"
+label = "Traders — Red Forest"
+short = "Red Forest"
+section = "TRADERS"
+group = "Locations"
+columns = ["Chance", "MinCount", "MaxCount", "MinDurability", "MaxDurability"]
+
+[[categories]]
+id = "Eger"
+label = "Traders — Eger"
+short = "Eger"
+section = "TRADERS"
+group = "Locations"
+columns = ["Chance", "MinCount", "MaxCount", "MinDurability", "MaxDurability"]
+
+[[categories]]
+id = "Suska"
+label = "Traders — Suska"
+short = "Suska"
+section = "TRADERS"
+group = "Locations"
+columns = ["Chance", "MinCount", "MaxCount", "MinDurability", "MaxDurability"]
+
+[[categories]]
+id = "Selma"
+label = "Traders — Selma"
+short = "Selma"
+section = "TRADERS"
+group = "Locations"
+columns = ["Chance", "MinCount", "MaxCount", "MinDurability", "MaxDurability"]
+
+[[categories]]
+id = "PowerPlug"
+label = "Traders — Power Plug"
+short = "Power Plug"
+section = "TRADERS"
+group = "Locations"
+columns = ["Chance", "MinCount", "MaxCount", "MinDurability", "MaxDurability"]
+
+[[categories]]
+id = "UniversalOther"
+label = "Traders — universal shops & NPC factions"
+short = "Universal / Other"
+section = "TRADERS"
+group = "Other"
+columns = ["Chance", "MinCount", "MaxCount", "MinDurability", "MaxDurability"]
+
+# ---------------------------------------------------------------------------
+# Classification rules, evaluated IN ORDER: the first match assigns the
+# category (no match -> out-of-scope entry).
 #
-# Conditions (toutes doivent être vraies) :
-#   delegations        : "exclude" (défaut) | "include" | "only"
-#   file_roles         : rôle du fichier parmi la liste
-#   exclude_file_roles : rôle du fichier hors de la liste
-#   block / item       : motif { exact, prefix, suffix, contains } — vrai si
-#                        l'une des listes correspond
-#   has_fields         : l'entrée porte au moins un de ces champs
+# Conditions (all must be true):
+#   delegations        : "exclude" (default) | "include" | "only"
+#   file_roles         : file role in the list
+#   exclude_file_roles : file role outside the list
+#   block / item       : matcher { exact, prefix, suffix, contains } — true
+#                        if any list matches
+#   exclude_block      : matcher — the rule is SKIPPED when the block matches
+#   has_fields         : the entry carries at least one of these fields
 # ---------------------------------------------------------------------------
 
 # Anomalies: the whole `AnomalyPrototypes.cfg` file (one block = one entry).
@@ -1273,13 +1452,15 @@ file_roles = ["weapon_player"]
 category = "NpcWeaponCombat"
 file_roles = ["weapon_npc"]
 
-# Charge des NPCs du monde : groupée par bloc de faction, quel que soit l'item.
+# World NPC loadouts: grouped by faction block, whatever the item.
+# Trade blocks are excluded (they live in the TRADERS section below).
 [[rules]]
 category = "NpcLoadout"
 file_roles = ["dynamic_npc"]
 block = { prefix = ["GeneralNPC", "GuardNPC", "GeneralZombie", "Duga_", "Granit_"] }
+exclude_block = { contains = ["TradeItemGenerator"] }
 
-# Caisses médicales cassables (délégations comprises).
+# Breakable medical crates (delegations included).
 [[rules]]
 category = "MedCrate"
 delegations = "include"
@@ -1317,8 +1498,8 @@ block = { exact = [
   "NPC_Ammo_Smart",
 ] }
 
-# Spawn direct (joueur / NPC principal). Les deux orthographes AntiRad /
-# Antirad existent dans les données.
+# Direct spawn (player / main NPC). Both spellings AntiRad /
+# Antirad exist in the data.
 [[rules]]
 category = "MedDirect"
 block = { exact = ["PlayerItemGenerator", "MainNPCItemGenerator", "GameStartPlayerItemGenerator"] }
@@ -1334,14 +1515,17 @@ item = { exact = [
   "A762SniperS", "A012D", "A012A", "A012E", "A762NATOD", "A762NATOA", "A762NATOS",
 ] }
 
-# Armes : entrées portant AmmoMinCount / AmmoMaxCount (hors stashes).
+# Weapons: entries carrying AmmoMinCount / AmmoMaxCount (no stashes).
 [[rules]]
 category = "AmmoWeapon"
 exclude_file_roles = ["stashes"]
 has_fields = ["AmmoMinCount", "AmmoMaxCount"]
+exclude_block = { contains = ["TradeItemGenerator"] }
 
-# Familles d'items par nom. L'ordre compte : les motifs de quête sont les
-# plus larges (une armure de quête porte aussi le suffixe _Armor).
+# Item families by name. Order matters: the quest patterns are the
+# widest (a quest armor also carries the _Armor suffix).
+# Trade blocks are excluded (TRADERS section): every family rule below
+# carries the same `exclude_block`.
 [[rules]]
 category = "Quest"
 item = { prefix = ["Blueprint_"], suffix = ["PDA"], contains = ["_Key_", "Note", "Docs"], exact = [
@@ -1353,18 +1537,22 @@ item = { prefix = ["Blueprint_"], suffix = ["PDA"], contains = ["_Key_", "Note",
   "SuppressorDevicePart",
   "E03_02_OldTechDocs_X18",
 ] }
+exclude_block = { contains = ["TradeItemGenerator"] }
 
 [[rules]]
 category = "Artifact"
 item = { prefix = ["CArtifact", "FArtifact", "GArtifact", "EArtifact", "AArtifact"] }
+exclude_block = { contains = ["TradeItemGenerator"] }
 
 [[rules]]
 category = "Food"
 item = { exact = ["Bread", "Sausage", "CannedFood", "Vodka", "Beer", "Water", "Milk", "Energetic"] }
+exclude_block = { contains = ["TradeItemGenerator"] }
 
 [[rules]]
 category = "Grenade"
 item = { exact = ["GrenadeF1", "GrenadeRGD5"] }
+exclude_block = { contains = ["TradeItemGenerator"] }
 
 [[rules]]
 category = "Loot"
@@ -1373,17 +1561,135 @@ item = { exact = [
   "PseudodogLoot", "PseudogiantLoot", "FleshLoot", "ControllerLoot",
   "PoltergeistLoot", "BurerLoot", "SnorkLoot", "TushkanLoot", "BlinddogLoot",
 ] }
+exclude_block = { contains = ["TradeItemGenerator"] }
 
 [[rules]]
 category = "Armor"
 item = { suffix = ["_Armor", "_Helmet"], prefix = ["NVG_", "Binoculars_"] }
+exclude_block = { contains = ["TradeItemGenerator"] }
 
-# Détecteurs d'anomalies (Gilka / Veles / Echo / Oko / Bear).
+# Anomaly detectors (Gilka / Veles / Echo / Oko / Bear).
 [[rules]]
 category = "Detectors"
 item = { exact = ["Gilka", "Veles", "Echo", "Oko", "Bear"] }
+exclude_block = { contains = ["TradeItemGenerator"] }
 
 [[rules]]
 category = "Attach"
 item = { prefix = ["RU_", "EN_"], exact = ["Hercules", "DetectorGilka"] }
+exclude_block = { contains = ["TradeItemGenerator"] }
+
+# ---------------------------------------------------------------------------
+# TRADERS page: one rule per location (first match wins; the item-family
+# rules above carry `exclude_block` for trade blocks). `delegations =
+# "include"`: the "↳ target" rows are part of the view. The block-name
+# prefixes follow the real data spellings (Newbee, Techncian, Terikon…).
+# Universal shops + faction traders go to "Universal / Other".
+# ---------------------------------------------------------------------------
+[[rules]]
+category = "Zalesie"
+delegations = "include"
+block = { prefix = ["TraderZalesie", "ZalesieTechnician"] }
+
+[[rules]]
+category = "Terricon"
+delegations = "include"
+block = { prefix = ["Bartender_Terricon", "Medic_Terricon", "TerriconTechnician", "TraderTerikon"] }
+
+[[rules]]
+category = "Sultansk"
+delegations = "include"
+block = { prefix = ["BartenderSultansk", "Sultansk"] }
+
+[[rules]]
+category = "Malakhit"
+delegations = "include"
+block = { prefix = ["Malakhit"] }
+
+[[rules]]
+category = "Rostok"
+delegations = "include"
+block = { prefix = ["Rostok"] }
+
+[[rules]]
+category = "Yanov"
+delegations = "include"
+block = { prefix = ["Yanov"] }
+
+[[rules]]
+category = "Asylum"
+delegations = "include"
+block = { prefix = ["Asylum"] }
+
+[[rules]]
+category = "Ikar"
+delegations = "include"
+block = { prefix = ["Ikar"] }
+
+[[rules]]
+category = "NewbieVillage"
+delegations = "include"
+block = { prefix = ["NewbeeVillage"] }
+
+[[rules]]
+category = "CementPlant"
+delegations = "include"
+block = { prefix = ["CementPlant"] }
+
+[[rules]]
+category = "ChemicalPlant"
+delegations = "include"
+block = { prefix = ["Bartender_ChemicalPlant", "TechnicianChemicalPlant", "TraderChemicalPlant"] }
+
+[[rules]]
+category = "Pripyat"
+delegations = "include"
+block = { prefix = ["Pripyat"] }
+
+[[rules]]
+category = "Shevchenko"
+delegations = "include"
+block = { prefix = ["Shevchenko"] }
+
+[[rules]]
+category = "Varta"
+delegations = "include"
+block = { prefix = ["Varta"] }
+
+[[rules]]
+category = "Backwater"
+delegations = "include"
+block = { prefix = ["Backwater"] }
+
+[[rules]]
+category = "RedForest"
+delegations = "include"
+block = { prefix = ["RedForest"] }
+
+[[rules]]
+category = "Eger"
+delegations = "include"
+block = { prefix = ["Eger"] }
+
+[[rules]]
+category = "Suska"
+delegations = "include"
+block = { prefix = ["Suska", "TraderSuska"] }
+
+[[rules]]
+category = "Selma"
+delegations = "include"
+block = { prefix = ["Selma"] }
+
+[[rules]]
+category = "PowerPlug"
+delegations = "include"
+block = { prefix = ["PowerPlug"] }
+
+# Universal shops + faction traders (GeneralNPC_TradeItemGenerator and
+# its _Bandit / _Duty / … variants).
+[[rules]]
+category = "UniversalOther"
+delegations = "include"
+block = { prefix = ["BartenderUniversal", "MedicUniversal", "MedicNoon", "GeneralNPC_TradeItemGenerator"] }
 

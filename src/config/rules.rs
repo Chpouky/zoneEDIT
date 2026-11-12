@@ -40,7 +40,7 @@ pub struct RuleInput<'a> {
     pub is_delegation: bool,
     /// Role of the file (from the config).
     pub file_role: &'a str,
-    /// Nom du bloc de niveau 1.
+    /// Name of the level-1 block.
     pub block: &'a str,
     /// SID of the item (or target of the delegation).
     pub item: &'a str,
@@ -57,6 +57,7 @@ pub struct Rule {
     pub(super) file_roles: Vec<String>,
     pub(super) exclude_file_roles: Vec<String>,
     pub(super) block: Option<Matcher>,
+    pub(super) exclude_block: Option<Matcher>,
     pub(super) item: Option<Matcher>,
     pub(super) has_fields: Vec<FieldKind>,
 }
@@ -73,6 +74,10 @@ impl Rule {
             && (self.file_roles.is_empty() || self.file_roles.iter().any(|r| r == e.file_role))
             && !self.exclude_file_roles.iter().any(|r| r == e.file_role)
             && self.block.as_ref().is_none_or(|m| m.matches(e.block))
+            && self
+                .exclude_block
+                .as_ref()
+                .is_none_or(|m| !m.matches(e.block))
             && self.item.as_ref().is_none_or(|m| m.matches(e.item))
             && (self.has_fields.is_empty() || self.has_fields.iter().any(|k| (e.has_field)(*k)))
     }

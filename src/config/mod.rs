@@ -302,6 +302,7 @@ impl Config {
                 file_roles: r.file_roles,
                 exclude_file_roles: r.exclude_file_roles,
                 block: r.block.map(Matcher::compile),
+                exclude_block: r.exclude_block.map(Matcher::compile),
                 item: r.item.map(Matcher::compile),
                 has_fields: r.has_fields,
             });
@@ -319,7 +320,7 @@ impl Config {
             }
         }
 
-        // Paires et actions en lot.
+        // Pairs and batch actions.
         let mut pairs = Vec::with_capacity(raw.pairs.len());
         for p in raw.pairs {
             need_field(p.min, "pair")?;
@@ -378,7 +379,7 @@ mod tests {
     fn default_config_is_valid() {
         let c = Config::default_arc();
         assert_eq!(c.files.len(), 9);
-        assert_eq!(c.categories.len(), 27);
+        assert_eq!(c.categories.len(), 48);
         assert_eq!(
             c.group_kinds().collect::<Vec<_>>(),
             vec![
@@ -406,7 +407,7 @@ mod tests {
             "overridden key replaced"
         );
         assert_eq!(c.ranks, vec!["Newbie", "Master"]);
-        assert_eq!(c.categories.len(), 27, "non-overridden array kept");
+        assert_eq!(c.categories.len(), 48, "non-overridden array kept");
     }
 
     #[test]

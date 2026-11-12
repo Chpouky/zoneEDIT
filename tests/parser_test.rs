@@ -1,13 +1,12 @@
-//! Tests d'intégration zoneEdit sur les données réelles de `GameData/`
-//! (dossier parent de `CARGO_MANIFEST_DIR`). Les comparaisons numériques
-//! passent par `domain::value::parse_value` (valeurs originales : « 1.f »,
-//! « 0. », …).
+//! zoneEdit integration tests on the real `GameData/` data (parent
+//! directory of `CARGO_MANIFEST_DIR`). Numeric comparisons go through
+//! `domain::value::parse_value` (original values: "1.f", "0.", …).
 
 use std::path::{Path, PathBuf};
 
-use zoneedit::config::Config;
+use zoneedit::config::{CategoryId, Config};
 use zoneedit::domain::value;
-use zoneedit::domain::{EntryId, FieldKind, Workspace};
+use zoneedit::domain::{EntryId, EntryKind, FieldKind, Workspace};
 use zoneedit::io::{export, load, presets, stale_files};
 
 fn load_root() -> Workspace {
@@ -403,20 +402,71 @@ fn new_categories() {
     assert_eq!(by_item("CArtifactSlug"), cfg.category_id("Artifact"));
     assert_eq!(by_item("DeerLoot"), cfg.category_id("Loot"));
     assert_eq!(by_item("RU_Silen_1"), cfg.category_id("Attach"));
-    // Les détecteurs d'anomalies vont dans la catégorie Detectors
-    // (ni Mutant Loot ni Armor, même s'ils ressemblent à des items de loot).
+    // Anomaly detectors go to the Detectors category (neither Mutant Loot
+    // nor Armor, even when they look like loot items).
     assert_eq!(by_item("Gilka"), cfg.category_id("Detectors"));
-    let detectors = cfg.category_id("Detectors").expect("catégorie Detectors");
+    let detectors = cfg.category_id("Detectors").expect("Detectors category");
     assert!(
         ws.entry_ids()
             .filter(|&id| ws.entry(id).sid == "Bear")
+            // A Bear sold by a trader belongs to the TRADERS page, not
+            // Detectors (exclude_block on the family rules).
+            .filter(|&id| !ws
+                .block(ws.entry(id).block)
+                .name
+                .contains("TradeItemGenerator"))
             .all(|id| ws.in_category(id, detectors)),
-        "Bear doit être classé Detectors partout où il apparaît"
+        "Bear must be classified Detectors wherever it appears outside trade blocks"
     );
     assert_eq!(
         by_item("Blueprint_Zubr_Upgrade_1"),
         cfg.category_id("Quest")
     );
+}
+
+/// Real data: every `*_TradeItemGenerator` block is classified in the
+/// TRADERS section (one location category each) and no trade row leaks
+/// into any other section.
+#[test]
+fn real_traders_page() {
+    let ws = load_root();
+    let cfg = ws.config();
+
+    let trader_cats: Vec<CategoryId> = (0..cfg.categories.len())
+        .map(|i| CategoryId(i as u16))
+        .filter(|&cid| cfg.categories[cid.idx()].section == "TRADERS")
+        .collect();
+    assert_eq!(trader_cats.len(), 21, "21 TRADERS categories");
+
+    let mut blocks: Vec<&str> = Vec::new();
+    let mut rows = 0u32;
+    for id in ws.entry_ids() {
+        let e = ws.entry(id);
+        let b = ws.block(e.block).name.as_str();
+        if !b.contains("TradeItemGenerator") {
+            continue;
+        }
+        rows += 1;
+        if !blocks.contains(&b) {
+            blocks.push(b);
+        }
+        assert!(
+            trader_cats.iter().any(|&c| ws.in_category(id, c)),
+            "trade row classified outside TRADERS: {b} / {}",
+            e.sid
+        );
+        for &c in ws.categories_of(id) {
+            assert_eq!(
+                cfg.categories[c.idx()].section,
+                "TRADERS",
+                "trade row leaked into a non-TRADERS category: {b} / {}",
+                e.sid
+            );
+        }
+    }
+    assert_eq!(blocks.len(), 64, "the 64 vanilla trade blocks");
+    // 368 item scopes + 166 delegation scopes in the vanilla file.
+    assert_eq!(rows, 534, "trade rows (items + delegations)");
 }
 
 // ---------------------------------------------------------------------------
@@ -798,6 +848,74 @@ fn fixture_classify() {
         c("DynamicTraderItemGenerator", "GunMark_SP"),
         cfg.category_id("AmmoWeapon")
     );
+}
+
+/// Traders page: `*_TradeItemGenerator` blocks are classified by location
+/// (TRADERS section); their items are NOT captured by the family
+/// categories (`exclude_block`); the delegation references are shown on
+/// the page (`delegations = "include"`).
+#[test]
+fn fixture_traders() {
+    let ws = load_fixtures();
+    let cfg = ws.config();
+    let sultansk = cfg.category_id("Sultansk").expect("Sultansk category");
+    let universal = cfg
+        .category_id("UniversalOther")
+        .expect("UniversalOther category");
+    let armor = cfg.category_id("Armor").expect("Armor category");
+    let grenade = cfg.category_id("Grenade").expect("Grenade category");
+    let npc = cfg.category_id("NpcLoadout").expect("NpcLoadout category");
+
+    // Every row of the Sultansk trader block (3 items + 1 delegation)
+    // belongs to the Sultansk category.
+    let block_ids: Vec<_> = ws
+        .entry_ids()
+        .filter(|&id| ws.block(ws.entry(id).block).name == "SultanskTrader_TradeItemGenerator")
+        .collect();
+    assert_eq!(block_ids.len(), 4, "3 items + 1 delegation");
+    for &id in &block_ids {
+        assert!(ws.in_category(id, sultansk), "trade row outside Sultansk");
+    }
+
+    // exclude_block regression: items sold by a trader are not captured
+    // by their family categories.
+    let armor_id = find_id(
+        &ws,
+        "SultanskTrader_TradeItemGenerator",
+        "Battle_Varta_Armor",
+    );
+    assert!(
+        !ws.in_category(armor_id, armor),
+        "trade armor leaked into Armor"
+    );
+    let grenade_id = find_id(&ws, "SultanskTrader_TradeItemGenerator", "GrenadeF1");
+    assert!(
+        !ws.in_category(grenade_id, grenade),
+        "trade grenade leaked into Grenade"
+    );
+
+    // Delegation (↳ MedicUniversal): shown on the Sultansk page, while
+    // the target block's own items live in UniversalOther.
+    let deleg = block_ids
+        .iter()
+        .find(|&&id| ws.entry(id).kind == EntryKind::Delegation)
+        .copied()
+        .expect("delegation row in the Sultansk block");
+    assert_eq!(ws.entry(deleg).sid, "MedicUniversal_TradeItemGenerator");
+    let medkit = find_id(&ws, "MedicUniversal_TradeItemGenerator", "Medkit");
+    assert_eq!(
+        ws.categories_of(medkit).first().copied(),
+        Some(universal),
+        "delegation target block classified UniversalOther"
+    );
+
+    // Non-trade faction block: unaffected, still NpcLoadout.
+    let ak = find_id(
+        &ws,
+        "GeneralNPC_Duty_Stormtrooper_ItemGenerator",
+        "GunAK74_ST",
+    );
+    assert_eq!(ws.categories_of(ak).first().copied(), Some(npc));
 }
 
 /// Validation : nombre, ≥ 0, ≤ 1 pour les spawn chances, entier pour les
